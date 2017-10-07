@@ -6,7 +6,7 @@ setup(
     author='Bradley J. Harden',
     author_email='bradleyharden@gmail.com',
     packages=['nmrpeaklists'],
-    scripts=['bin/cara2sparky', 'bin/cara2tab', 'bin/cluster_tab',
+    scripts=['bin/cara2tab', 'bin/cluster_tab',
              'bin/comment_peaklist', 'bin/filter_NOESY_fits',
              'bin/filter_spin_links', 'bin/find_eliminated_spin_links',
              'bin/print_tab_clusters'],
