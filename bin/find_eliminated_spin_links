@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+import sys
+from textwrap import dedent
+import nmrpeaklists as npl
+
+if len(sys.argv) < 2 or sys.argv[1] in ['-h', '--help']:
+    usage = """
+    Find cases where all instances of a particular spin link have been
+    commented out of a set of Xeasy files. Either the same spin link was
+    commented in both directions, or there was only one copy of the spin
+    link to begin with, and it is now commented.
+
+    This script requires a spin ID file from CARA in order to determine the
+    assignment of each peak. Use the CARA Lua script provided with the
+    nmrpeaklists library to create this file.
+
+    Usage:
+    ./find_eliminated_spin_links spin_id_file xeasy_file [xeasy_file [...
+    """
+    print dedent(usage)
+    sys.exit()
+
+# Read all of the XEASY files and assign the spins
+peaklist = npl.PeakList()
+for filename in sys.argv[2:]:
+    pklst = npl.XeasyFile().read_peaklist(filename)
+    peaklist.extend(pklst)
+assignments = npl.CaraSpinsFile().read_file(sys.argv[1])
+peaklist = assignments.assign_peaklist(peaklist)
+
+# Use a spin link dictionary to find links that are completely commented
+spin_link_dict = npl.get_spin_link_dict(peaklist)
+eliminated = {link: peaks for link, peaks in spin_link_dict.items()
+              if all(peak.commented for peak in peaks)}
+
+# Turn the list of spin links into a peak list
+links_peaklist = npl.PeakList()
+for link in eliminated.keys():
+    spins = [npl.Spin(**assignment._asdict()) for assignment in link]
+    peak = npl.Peak(spins=spins)
+    links_peaklist.append(peak)
+
+# Use the spin link peak list to create columns to use when printing the link
+columns = npl.PipeNameGroup().resolve_from_peaklist(links_peaklist)
+print('      Link            Volumes                 Indices')
+for link_peak, peaks in zip(links_peaklist, eliminated.values()):
+    name = link_peak.name(columns)
+    volumes = ', '.join('%10.3e' % peak.volume for peak in peaks)
+    indices = ', '.join('#%4d' % peak.number for peak in peaks)
+    print(name + '  ' + volumes + '   ' + indices)

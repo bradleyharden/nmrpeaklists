@@ -1,0 +1,133 @@
+#!/usr/bin/env python
+import argparse as ap
+import nmrpeaklists as npl
+
+description = """
+Comment peaks in an Xeasy or NMRPipe peak list based on a comment file
+
+Comment file format
+-------------------
+Each line in the file is a peak. Each peak is a list of spin names. Each
+spin name should contain three parts: a one-letter code for the amino
+acid type or '+' for un-assigned spin systems; an integer residue number
+or system number; and finally a dash followed by an atom name. Any of
+the three parts can be replaced by a '?' if the part is unavailable. Two
+names can be combined into one if the spins form a spin anchor (i.e.
+they are a directly attached hydrogen/heavy atom pair). In such a case,
+list the residue type and residue number once and combine the atom
+names with a slash. If spin anchor names are combined for one peak, they
+must be combined for all peaks. You can add or remove peaks to be
+commented (comment the comments) with the '#' symbol.
+
+Peak list file types
+--------------------
+Both NMRPipe .tab files and Xeasy .peaks files are accepted. NMRPipe
+.tab files must have been created with the nmrpeaklists library or
+otherwise have the assignments in the proper format. The Xeasy format
+does not store assignment data. To comment an Xeasy file, you must also
+include a spin ID file from CARA. Use the Lua script provided with the
+nmrpeaklists library to create the spin ID file.
+
+2D Examples
+-----------
+   G55-H   G55-N
+  +117-H  +117-N
+
+or
+
+   G55-H/N
+  +117-H/N
+ # H84-HA/CA
+ # F90-HD/CD
+
+3D Examples
+-----------
+   W37-HA   W37-CA   L87-?
+   I29-HG2  I29-CG2  Y74-HE
+
+or
+
+   W37-HA/CA  L87-?
+   I29-HG2/CG2  Y74-HE
+   L41-H/N  ??-?
+   S?-H/N  D58-C
+  +132-H/N  +132-C-1
+ # I31-HA/CA  Y70-HE
+"""
+
+parser = ap.ArgumentParser(description=description,
+                           formatter_class=ap.RawDescriptionHelpFormatter)
+parser.add_argument(dest='input_file', metavar='peaklist', type=str,
+                    help='input peak list')
+parser.add_argument(dest='comment_file', metavar='comments', type=str,
+                    help='comment file')
+parser.add_argument(dest='out_file', metavar='commented', type=str,
+                    help='output peak list')
+parser.add_argument('--spinID', dest='spin_id_file', metavar='spin_ids',
+                    type=str, default=None, help='spin_id file')
+parser.add_argument('-i', dest='invert', action='store_true',
+                    help='invert the sense of commenting (comment all but...)')
+parser.add_argument('-r', dest='residues_only', action='store_true',
+                    help='limit the search to only assigned residues')
+parser.add_argument('-s', dest='systems_only', action='store_true',
+                    help='limit the search to only unassigned spin systems')
+args = parser.parse_args()
+
+# Read the peak list
+if args.input_file.endswith('.tab'):
+    peaklist_file = npl.PipeFile()
+    peaklist = peaklist_file.read_peaklist(args.input_file)
+elif args.input_file.endswith('.peaks'):
+    if args.spin_id_file is None:
+        raise ValueError('Spin ID file required for XEASY files')
+    peaklist_file = npl.XeasyFile()
+    peaklist = peaklist_file.read_peaklist(args.input_file)
+    assignments = npl.CaraSpinsFile().read_file(args.spin_id_file)
+    peaklist = assignments.assign_peaklist(peaklist)
+
+# Read the comment file
+with open(args.comment_file, 'r') as com:
+    comment_file = com.readlines()
+
+# Determine the number of names per peak
+names_per_peak = []
+for line in comment_file:
+    names = line.lstrip('# ').rstrip().split()
+    names_per_peak.append(len(names))
+names_per_peak = set(names_per_peak)
+if len(names_per_peak) != 1:
+    err = ('comment file format error, '
+           'each peak must have the same number of names')
+    raise ValueError(err)
+names_per_peak = names_per_peak.pop()
+
+# Create an NMRPipe file out of the comment file by adding a header
+num_dims = peaklist.dims
+start = 2 if names_per_peak < num_dims else 1
+column_names = ['XY_NAME'] if names_per_peak < num_dims else ['X_NAME']
+column_names += ['XYZA'[i] + '_NAME' for i in range(start, num_dims)]
+column_formats = ['%s'] * names_per_peak
+lines = ['VARS ' + ' '.join(column_names) + '\n',
+         'FORMATS ' + ' '.join(column_formats) + '\n']
+lines += comment_file
+
+# Read the comment file to a peak list and remove any commented peaks, i.e.
+# the comment was commented
+to_comment = npl.PipeFile().read_peaklist_lines(lines)
+to_comment[:] = [peak for peak in to_comment if not peak.commented]
+
+# Comment the peaks in the peak list according to the arguments
+for peak in peaklist:
+    if args.residues_only and any(s.res_type in ['+', None] for s in peak):
+        continue
+    if args.systems_only and any(spin.res_type != '+' for spin in peak):
+        continue
+    if args.invert:
+        if peak not in to_comment:
+            peak.commented = True
+    else:
+        if peak in to_comment:
+            peak.commented = True
+
+# Write the commented peak list using the same format as the input file
+peaklist_file.write_peaklist(peaklist, args.out_file)

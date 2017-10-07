@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+import argparse as ap
+import nmrpeaklists as npl
+
+description = """
+Print all of the clusters in an NMRPipe .tab file
+
+Use the option '-c' to print the clusters such that they can be used as
+the cluster file for the nmrpeaklists script cluster_tab.
+"""
+parser = ap.ArgumentParser(description=description,
+                           formatter_class=ap.RawDescriptionHelpFormatter)
+parser.add_argument(dest='tab_file', metavar='peaklist.tab', type=str,
+                    help='.tab file')
+parser.add_argument('-c', dest='clean', action='store_true',
+                    help='print the clusters without a header or indices')
+args = parser.parse_args()
+
+# Read the peak list
+peaklist = npl.PipeFile().read_peaklist(args.tab_file)
+
+# Create a dictionary mapping the cluster id to a list of peaks in that cluster
+clusters = {}
+for peak in peaklist:
+    try:
+        cluster_size = peak.cluster_size
+        cluster_id = peak.cluster_id
+    except AttributeError:
+        pass
+    else:
+        if cluster_size > 1:
+            peaks = clusters.setdefault(cluster_id, [])
+            peaks.append(peak)
+
+# Create some columns to use for neatly printing the peak names
+columns = npl.PipeNameGroup().resolve_from_peaklist(peaklist)
+
+# Print the peaks in each cluster
+if not args.clean:
+    print('CLUSTID     Peaks in cluster')
+for cluster_id, cluster in sorted(clusters.items()):
+    peak_names = ', '.join(peak.name(columns) for peak in cluster)
+    if args.clean:
+        print(peak_names)
+    else:
+        cluster_id = '{:4d}: '.format(cluster_id)
+        print(cluster_id + peak_names)

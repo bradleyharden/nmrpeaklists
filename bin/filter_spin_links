@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+import sys
+from textwrap import dedent
+from copy import deepcopy
+import nmrpeaklists as npl
+
+if len(sys.argv) < 4:
+    usage = """
+    Filter 3D Xeasy spin links based on a file for use with CYANA
+
+    This script allows you to easily mark a list of spin links as "bad
+    fits". These spin links can still be retained for CYANA calculations,
+    but they are set to the maximum allowed distance.
+
+    For each spin link in the move file, copy the corresponding peak in the
+    source Xeasy file and paste it in the target Xeasy file. Change the
+    integration volume of each peak in the target file to 1.0. Retain the
+    peak in the source XEASY file, but comment it.
+
+    When using the target Xeasy file with CYANA calibration, the
+    corresponding UPL will be set to the maximum allowed distance.
+    
+    A CARA spin ID file is required, because XEASY files do not store
+    assignment information. Use the CARA Lua script provided in the
+    nmrpeaklists library to create it.
+
+    Move file format
+    ----------------
+    Each line in the file is a peak. Each peak is a list of spin names. Each
+    spin name should contain three parts: a one-letter code for the amino
+    acid type; an integer residue number; and finally a dash followed by an
+    atom name. When two atoms form a spin anchor, their names should be
+    combined into one. A spin anchor is a directly attached hydrogen/heavy
+    atom pair. For a spin anchor, list the residue type and residue number
+    once and combine the atom names with a slash. You can add or remove
+    peaks to be filtered with the '#' symbol.
+
+    Example file
+    ------------
+        W37-HA/CA     L87-HD2
+      # I29-HG2/CG2   Y74-HE
+
+    Usage:
+    ./filter_spin_links  move_file  source  target  spin_id_file
+    """
+    print dedent(usage)
+    sys.exit()
+
+# Create a fake NMRPipe file to read the list of names
+with open(sys.argv[1], 'r') as mov:
+    move_file = mov.readlines()
+header = ['VARS XY_NAME Z_NAME\n', 'FORMAT %s %s\n', '\n']
+lines = header + move_file
+to_move = npl.PipeFile().read_peaklist_lines(lines)
+
+# Read the source and target files
+assignments = npl.CaraSpinsFile().read_file(sys.argv[4])
+source_file = npl.XeasyFile()
+source = source_file.read_peaklist(sys.argv[2])
+source = assignments.assign_peaklist(source)
+target_file = npl.XeasyFile()
+target = target_file.read_peaklist(sys.argv[3])
+target = assignments.assign_peaklist(target)
+
+# Move peaks
+for peak in source:
+    if peak in to_move and peak not in target:
+        copy = deepcopy(peak)
+        copy.volume = 1.0
+        copy.commented = False
+        target.append(copy)
+        peak.commented = True
+source_file.write_peaklist(source, sys.argv[2])
+target_file.write_peaklist(target, sys.argv[3])

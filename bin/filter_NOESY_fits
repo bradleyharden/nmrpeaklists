@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+import argparse as ap
+import nmrpeaklists as npl
+
+description = """
+Filter nlinLS fits of NOESY data and create Xeasy files for CYANA
+
+Filter nlinLS fits of a NOESY spectrum to exclude poorly fitted peaks,
+then output the files in both NMRPipe .tab format and Xeasy format for
+CYANA.
+
+This script takes the nlinLS fit file as input (usually fit.tab) and
+produces four output files. First, the fit file is split into two tab
+files, one with accepted fits (default volumes.tab) and one with
+rejected fits (default rejected.tab). Next, the accepted fits are
+converted to a file in XEASY format (default volumes.peaks) while
+rejected fits are assigned a volume of 1.0 and written to a separate
+XEASY file (default rejected.peaks). The rejected Xeasy file can be used
+in CYANA to assign these spin links to the maximum UPL distance.
+
+There are two ways to filter the fits. You can set a lower limit for the
+fitted volume with the option --vol_lower (default 0), and you can set
+an upper limit to the fitted width in each dimension with the option
+--width_upper (default +Inf). The upper limits should be specified using
+Python list syntax. List multiplication and addition syntax is supported
+here (e.g. [20,20,20] or [20]*3), but the list MUST NOT include any
+spaces. The lower limit for the fitted width is hardcoded to 0. Peaks
+with fitted widths exactly equal to 0 or the upper limit are rejected.
+"""
+parser = ap.ArgumentParser(description=description,
+                           formatter_class=ap.RawDescriptionHelpFormatter)
+required = parser.add_argument_group('required arguments')
+required.add_argument('--in', dest='fit_file', metavar='FILE', type=str,
+                      required=True, help='output of nlinLS (usually fit.tab)')
+parser.add_argument('--out', dest='vol_prefix', metavar='FILE',
+                    type=str, default='volumes',
+                    help='prefix for output files (default volumes)')
+parser.add_argument('--rej', dest='rej_prefix', metavar='FILE',
+                    type=str, default='rejected',
+                    help='prefix for rejected files (default rejected)')
+parser.add_argument('--vol_lower', dest='threshold', default=0, type=float,
+                    help='volume threshold (default 0)')
+parser.add_argument('--width_upper', dest='width_upper', metavar='W',
+                    nargs='1', type=float, help='upper limits for fitted ' +
+                    'width in each dimension (default +Inf for each)')
+args = parser.parse_args()
+
+# Read peak list and add columns for the N-D Gaussian to the template
+names = ('{}W'.format(d) for d in 'XYZA')
+columns = [npl.PeakAttrColumn('VOL', '%11.4e', 'volume'),
+           npl.PeakAttrColumn('HEIGHT', '%11.4e', 'height'),
+           npl.SpinAttrGroup(names, '%5.2f', 'width')]
+pipe_file = npl.PipeFile()
+pipe_file.template.insert_default(columns)
+peaklist = pipe_file.read_peaklist(args.fit_file)
+
+# Determine width upper-limits
+if args.wupl is None:
+    wupl = [float('inf')] * peaklist.dims
+else:
+    wupl = npl.parse_list_literal(args.wupl)
+    if len(args.wupl) != peaklist.dims:
+        parser.error("number of width upper limits doesn't match peak list " +
+                     "dimensionality")
+
+# Sort peaks
+accepted = npl.PeakList()
+rejected = npl.PeakList()
+for peak in peaklist:
+    above_threshold = peak.volume > args.threshold
+    widths = [spin.width for spin in peak]
+    within_bounds = all(0 < w < u for w, u in zip(widths, wupl))
+    if above_threshold and within_bounds:
+        accepted.append(peak)
+    else:
+        peak.volume = 1.0
+        rejected.append(peak)
+
+# Write peaks
+if accepted:
+    filename = args.vol_prefix + '.tab'
+    pipe_file.write_peaklist(accepted, filename)
+    filename = args.vol_prefix + '.peaks'
+    npl.XeasyFile().write_peaklist(accepted, filename)
+if rejected:
+    filename = args.rej_prefix + '.tab'
+    pipe_file.write_peaklist(rejected, filename)
+    filename = args.rej_prefix + '.peaks'
+    npl.XeasyFile().write_peaklist(rejected, filename)
