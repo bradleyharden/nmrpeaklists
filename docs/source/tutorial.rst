@@ -1,15 +1,15 @@
-============
-nmrpeaklists
-============
+========
+Tutorial
+========
 
-Read, write, edit and convert between various NMR peak list formats. Library documentation is available `here <http://bradleyharden.github.io/nmrpeaklists/index.html>`_.
+Read, write, edit and convert between various NMR peak list formats.
 
 .. contents:: :local:
 
 Reading a peak list
 ===================
 
-Peak lists can be read in two different ways. The ``peaklists`` library provides top level functions for reading a peak list file and returning a new :class:`.PeakList` object. Alternatively, user may opt to initialize a blank :class:`.PeakList` object and read multiple peak lists into it using the vairous read methods.
+Peak lists can be read in two different ways. The ``nmrpeaklists`` library provides top level functions for reading a peak list file and returning a new :class:`.PeakList` object. Alternatively, user may opt to initialize a blank :class:`.PeakList` object and read multiple peak lists into it using the vairous read methods.
 
 XEASY format
 ------------
