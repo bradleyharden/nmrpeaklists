@@ -57,16 +57,8 @@ class Spin(object):
     compared to each other first by residue number, then by backbone or
     sidechain position, and finally by atom number.
 
-    .. warning:: Spin objects are hashable but still mutable.
-
     Parameters
     ----------
-    shift : float or string, optional
-        Chemical shift in PPM
-    shift_pts : float or string, optional
-        Chemical shift in points. Necessarily spectrum specific.
-    spin_id : int or string, optional
-        Spin ID number.
     res_type : string, optional
         Single letter code for residue type. Use ``'+'`` for unassigned
         spin systems.
@@ -219,7 +211,7 @@ class Peak(MutableSequence):
 
     Parameters
     ----------
-    spins : list of Spin objects, optional
+    spins : :obj:`list` of :obj:`Spin`, optional
         Spins comprising the peak
     index : int or string, optional
         Peak index

@@ -25,6 +25,17 @@ __all__ = ['Column', 'IgnoreColumn', 'PeakAttrColumn', 'PeakAttrListColumn',
 
 class Column(object):
     """
+    Represent a peak list column and map its data to Peak objects
+
+    Provide a base class for representing peak list columns and define an
+    interface for mapping column data to Peak objects.
+
+    Parameters
+    ----------
+    name : str
+        Name of the peak list column, should be unique within a peak list
+    fmt : str
+        printf-style format string specifying how the data should be printed
     """
     types = {'d': int, 'e': float, 'f': float, 's': str}
     _sentinel = object()
@@ -41,16 +52,81 @@ class Column(object):
         rpr = name + '(' + ', '.join(pairs) + ')'
         return rpr
 
-    def get_value(self, peak, default=None):
+    def get_value(self, peak, default=_sentinel):
+        """
+        get_value(peak[, default])
+
+        Get the appropriate column data from a Peak object
+
+        Return the value from the Peak object corresponding to the associated
+        peak list column. Each subclass must provide its own definition of
+        this interface.
+
+        Parameters
+        ----------
+        peak : :class:`~.peaklist.Peak`
+            Peak object containing the corresponding column data
+        default : optional
+            If the Peak does not contain the corresponding data, return
+            ``default`` if provided, otherwise raise an Exception.
+
+        Returns
+        -------
+        value
+            The column value taken from the Peak object
+        """
         raise NotImplementedError
 
     def set_value(self, peak, value):
+        """
+        Set the appropriate value in a Peak object from peak list column data
+
+        Set the value in the Peak object corresponding to the associated peak
+        list column. Each subclass must provide its own definition of this
+        interface.
+
+        Parameters
+        ----------
+        peak : :class:`~.peaklist.Peak`
+            Peak object in which to set the column data
+        value
+            The column value to set in the Peak object
+        """
         raise NotImplementedError
 
     def get_string(self, peak):
+        """
+        Get column data from a Peak object and return a formatted string
+
+        Return a formatted string representing the value from the Peak object
+        corresponding to the associated peak list column.
+
+        Parameters
+        ----------
+        peak : :class:`~.peaklist.Peak`
+            Peak object containing the corresponding column data
+
+        Returns
+        -------
+        value : str
+            A formatted string of the column data for the Peak object
+        """
         return self.fmt % self.get_value(peak)
 
     def set_string(self, peak, string):
+        """
+        Set the appropriate value in a Peak object from a formatted string
+
+        Set the value in the Peak object corresponding to the associated peak
+        list column based on a formatted string.
+
+        Parameters
+        ----------
+        peak : :class:`~.peaklist.Peak`
+            Peak object in which to set the column data
+        string : str
+            Formatted string of the column data to set in the Peak object
+        """
         if self.fmt is None:
             self.set_value(peak, string)
         else:
@@ -375,7 +451,7 @@ class PeakAttrListGroup(ColumnGroup):
     def resolve_from_peaklist(self, peaklist):
         indices = []
         data_rows = [getattr(peak, self.attr, []) for peak in peaklist]
-        for index, col in zip_longest(*data_rows):
+        for index, col in enumerate(zip_longest(*data_rows)):
             if any(data is None for data in col):
                 if not all(data is None for data in col):
                     name = self.possible_names[index]
