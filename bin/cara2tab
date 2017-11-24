@@ -2,8 +2,7 @@
 import argparse as ap
 import nmrpeaklists as npl
 
-
-def main():
+def argparser():
     description = """
     Convert a CARA anchor or strip peak list to NMRPipe .tab file
 
@@ -143,6 +142,10 @@ def main():
     parser.add_argument('--out', dest='out_file', metavar='cara.tab',
                         type=str, default='cara.tab',
                         help='NMRPipe .tab file (default cara.tab)')
+    return parser
+
+def main():
+    parser = argparser()
     args = parser.parse_args()
 
     # Read peaklist

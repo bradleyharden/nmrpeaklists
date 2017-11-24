@@ -33,7 +33,10 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.viewcode',
-    'numpydoc'
+    'numpydoc',
+    'sphinxcontrib.programoutput',
+    'sphinxarg.ext',
+    'sphinxcontrib.autoprogram'
 ]
 numpydoc_show_class_members = False
 

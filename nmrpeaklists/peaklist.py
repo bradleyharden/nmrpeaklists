@@ -41,6 +41,8 @@ __all__ = ['Assignment', 'Spin', 'Peak', 'PeakList', 'calibrate_peaklist',
 
 
 Assignment = namedtuple('Assignment', ('res_type', 'res_num', 'atom'))
+"""
+"""
 
 
 class Spin(object):
