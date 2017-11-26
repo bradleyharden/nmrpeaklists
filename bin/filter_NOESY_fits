@@ -41,7 +41,7 @@ parser.add_argument('--rej', dest='rej_prefix', metavar='FILE',
 parser.add_argument('--vol_lower', dest='threshold', default=0, type=float,
                     help='volume threshold (default 0)')
 parser.add_argument('--width_upper', dest='width_upper', metavar='W',
-                    nargs='1', type=float, help='upper limits for fitted ' +
+                    type=str, help='upper limits for fitted ' +
                     'width in each dimension (default +Inf for each)')
 args = parser.parse_args()
 
@@ -55,11 +55,11 @@ pipe_file.template.insert_default(columns)
 peaklist = pipe_file.read_peaklist(args.fit_file)
 
 # Determine width upper-limits
-if args.wupl is None:
-    wupl = [float('inf')] * peaklist.dims
+if args.width_upper is None:
+    width_upper = [float('inf')] * peaklist.dims
 else:
-    wupl = npl.parse_list_literal(args.wupl)
-    if len(args.wupl) != peaklist.dims:
+    width_upper = npl.parse_list_literal(args.width_upper)
+    if len(width_upper) != peaklist.dims:
         parser.error("number of width upper limits doesn't match peak list " +
                      "dimensionality")
 
@@ -69,7 +69,7 @@ rejected = npl.PeakList()
 for peak in peaklist:
     above_threshold = peak.volume > args.threshold
     widths = [spin.width for spin in peak]
-    within_bounds = all(0 < w < u for w, u in zip(widths, wupl))
+    within_bounds = all(0 < w < u for w, u in zip(widths, width_upper))
     if above_threshold and within_bounds:
         accepted.append(peak)
     else:

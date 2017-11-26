@@ -1,17 +1,12 @@
 """
-A Python library for handling NMR peak lists.
-
-Read, write, process and convert between NMR peak list formats. Easily
-add and remove columns for data processing and fitting with NMRPipe.
-Sort and filter peak lists by the peak assignments. Currently supports
-peak lists from NMRPipe (.tab files), XEASY (.peaks files), CARA
-(modified .peaks files), and CYANA (.upl files).
-
 Classes
 -------
 
-:class:`Spin` objects encapsulate all properties of a single NMR spin in
-a peak list
+:class:`Assignment` objects encapsulate the three elements of an NMR
+assignment: residue type, residue number and atom name.
+
+:class:`Spin` objects encapsulate all properties of a single NMR spin
+resonance in a peak list
 
 :class:`Peak` objects represent a line in a peak list. They act as lists
 of Spin objects and contain additional peak-specific attributes.
