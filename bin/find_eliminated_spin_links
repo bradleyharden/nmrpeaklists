@@ -41,10 +41,14 @@ for link in eliminated.keys():
     links_peaklist.append(peak)
 
 # Use the spin link peak list to create columns to use when printing the link
-columns = npl.PipeNameGroup().resolve_from_peaklist(links_peaklist)
-print('      Link            Volumes                 Indices')
-for link_peak, peaks in zip(links_peaklist, eliminated.values()):
-    name = link_peak.name(columns)
-    volumes = ', '.join('%10.3e' % peak.volume for peak in peaks)
-    indices = ', '.join('#%4d' % peak.number for peak in peaks)
-    print(name + '  ' + volumes + '   ' + indices)
+if len(links_peaklist) == 0:
+    print('No spin links have been completely eliminated')
+else:
+    columns = npl.PipeNameGroup().resolve_from_peaklist(links_peaklist)
+    print('      Link            Volumes                 Indices')
+    for link_peak, peaks in zip(links_peaklist, eliminated.values()):
+        name = link_peak.name(columns)
+        volumes = ', '.join('%10.3e' % peak.volume for peak in peaks)
+        indices = ', '.join('#%4d' % peak.number for peak in peaks)
+        print(name + '  ' + volumes + '   ' + indices)
+

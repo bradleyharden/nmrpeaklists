@@ -93,7 +93,7 @@ columns = npl.PipeNameGroup().generate_columns(indices)
 # Read each cluster into its own peak list
 # Create a list of clusters zipped with their corresponding cluster ids
 # For now, initialize the cluster ids to None
-clusters = []
+cluster_list = []
 for list_of_peaks in clusters:
     cluster = npl.PeakList()
     for list_of_names in list_of_peaks:
@@ -102,7 +102,8 @@ for list_of_peaks in clusters:
         for column, name in zip(columns, list_of_names):
             column.set_string(peak, name)
         cluster.append(peak)
-    clusters.append((cluster, None))
+    cluster_list.append((cluster, None))
+clusters = cluster_list
 
 # For each peak, determine if it is in one of the clusters
 # If so, use the existing cluster id
