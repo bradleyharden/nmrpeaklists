@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'nmrpeaklists'
-copyright = u'2017, Bradley Harden'
+copyright = u'2019, Bradley Harden'
 author = u'Bradley Harden'
 
 # The version info for the project you're documenting, acts as replacement for
