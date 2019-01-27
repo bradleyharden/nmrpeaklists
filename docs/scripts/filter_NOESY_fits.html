@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>filter_NOESY_fits &#8212; nmrpeaklists 0.9 documentation</title>
+    <link rel="stylesheet" href="../_static/pydoctheme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="filter_spin_links" href="filter_spin_links.html" />
+    <link rel="prev" title="comment_peaklist" href="comment_peaklist.html" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <link rel="shortcut icon" type="image/png" href="../_static/favicon.png" />
+    <meta name="viewport" content="width=device-width,initial-scale=0.8">
+    
+    
+
+  </head><body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="responsive-menu"><a href="#sidebar-anchor" title="Navigation">&#9776;</a></li>
+        <li><a href="../index.html">nmrpeaklists 0.9 documentation</a> &#187;</li>
+          <li><a href="../scripts.html" accesskey="U">Scripts</a> &#187;</li> 
+      </ul>
+    </div>
+    
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="filter-noesy-fits">
+<span id="id1"></span><h1>filter_NOESY_fits<a class="headerlink" href="#filter-noesy-fits" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: filter_NOESY_fits [-h] --in FILE [--out FILE] [--rej FILE]
+                         [--vol_lower THRESHOLD] [--width_upper W]
+
+Filter nlinLS fits of NOESY data and create Xeasy files for CYANA
+
+Filter nlinLS fits of a NOESY spectrum to exclude poorly fitted peaks,
+then output the files in both NMRPipe .tab format and Xeasy format for
+CYANA.
+
+This script takes the nlinLS fit file as input (usually fit.tab) and
+produces four output files. First, the fit file is split into two tab
+files, one with accepted fits (default volumes.tab) and one with
+rejected fits (default rejected.tab). Next, the accepted fits are
+converted to a file in XEASY format (default volumes.peaks) while
+rejected fits are assigned a volume of 1.0 and written to a separate
+XEASY file (default rejected.peaks). The rejected Xeasy file can be used
+in CYANA to assign these spin links to the maximum UPL distance.
+
+There are two ways to filter the fits. You can set a lower limit for the
+fitted volume with the option --vol_lower (default 0), and you can set
+an upper limit to the fitted width in each dimension with the option
+--width_upper (default +Inf). The upper limits should be specified using
+Python list syntax. List multiplication and addition syntax is supported
+here (e.g. [20,20,20] or [20]*3), but the list MUST NOT include any
+spaces. The lower limit for the fitted width is hardcoded to 0. Peaks
+with fitted widths exactly equal to 0 or the upper limit are rejected.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --out FILE            prefix for output files (default volumes)
+  --rej FILE            prefix for rejected files (default rejected)
+  --vol_lower THRESHOLD
+                        volume threshold (default 0)
+  --width_upper W       upper limits for fitted width in each dimension
+                        (default +Inf for each)
+
+required arguments:
+  --in FILE             output of nlinLS (usually fit.tab)
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+    <a id="sidebar-anchor"></a>
+    
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="comment_peaklist.html"
+                        title="previous chapter">comment_peaklist</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="filter_spin_links.html"
+                        title="next chapter">filter_spin_links</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/scripts/filter_NOESY_fits.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="filter_spin_links.html" title="filter_spin_links"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="comment_peaklist.html" title="comment_peaklist"
+             accesskey="P">previous</a> |</li>
+      </ul>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Bradley Harden.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>

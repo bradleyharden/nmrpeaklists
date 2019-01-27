@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>comment_peaklist &#8212; nmrpeaklists 0.9 documentation</title>
+    <link rel="stylesheet" href="../_static/pydoctheme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="filter_NOESY_fits" href="filter_NOESY_fits.html" />
+    <link rel="prev" title="cluster_tab" href="cluster_tab.html" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <link rel="shortcut icon" type="image/png" href="../_static/favicon.png" />
+    <meta name="viewport" content="width=device-width,initial-scale=0.8">
+    
+    
+
+  </head><body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="responsive-menu"><a href="#sidebar-anchor" title="Navigation">&#9776;</a></li>
+        <li><a href="../index.html">nmrpeaklists 0.9 documentation</a> &#187;</li>
+          <li><a href="../scripts.html" accesskey="U">Scripts</a> &#187;</li> 
+      </ul>
+    </div>
+    
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="comment-peaklist">
+<span id="id1"></span><h1>comment_peaklist<a class="headerlink" href="#comment-peaklist" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: comment_peaklist [-h] [--spinID spin_ids] [-i] [-r] [-s]
+                        peaklist comments commented
+
+Comment peaks in an Xeasy or NMRPipe peak list based on a comment file
+
+Comment file format
+-------------------
+Each line in the file is a peak. Each peak is a list of spin names. Each
+spin name should contain three parts: a one-letter code for the amino
+acid type or &#39;+&#39; for un-assigned spin systems; an integer residue number
+or system number; and finally a dash followed by an atom name. Any of
+the three parts can be replaced by a &#39;?&#39; if the part is unavailable. Two
+names can be combined into one if the spins form a spin anchor (i.e.
+they are a directly attached hydrogen/heavy atom pair). In such a case,
+list the residue type and residue number once and combine the atom
+names with a slash. If spin anchor names are combined for one peak, they
+must be combined for all peaks. You can add or remove peaks to be
+commented (comment the comments) with the &#39;#&#39; symbol.
+
+Peak list file types
+--------------------
+Both NMRPipe .tab files and Xeasy .peaks files are accepted. NMRPipe
+.tab files must have been created with the nmrpeaklists library or
+otherwise have the assignments in the proper format. The Xeasy format
+does not store assignment data. To comment an Xeasy file, you must also
+include a spin ID file from CARA. Use the Lua script provided with the
+nmrpeaklists library to create the spin ID file.
+
+2D Examples
+-----------
+   G55-H   G55-N
+  +117-H  +117-N
+
+or
+
+   G55-H/N
+  +117-H/N
+ # H84-HA/CA
+ # F90-HD/CD
+
+3D Examples
+-----------
+   W37-HA   W37-CA   L87-?
+   I29-HG2  I29-CG2  Y74-HE
+
+or
+
+   W37-HA/CA  L87-?
+   I29-HG2/CG2  Y74-HE
+   L41-H/N  ??-?
+   S?-H/N  D58-C
+  +132-H/N  +132-C-1
+ # I31-HA/CA  Y70-HE
+
+positional arguments:
+  peaklist           input peak list
+  comments           comment file
+  commented          output peak list
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --spinID spin_ids  spin_id file
+  -i                 invert the sense of commenting (comment all but...)
+  -r                 limit the search to only assigned residues
+  -s                 limit the search to only unassigned spin systems
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+    <a id="sidebar-anchor"></a>
+    
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="cluster_tab.html"
+                        title="previous chapter">cluster_tab</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="filter_NOESY_fits.html"
+                        title="next chapter">filter_NOESY_fits</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/scripts/comment_peaklist.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="filter_NOESY_fits.html" title="filter_NOESY_fits"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="cluster_tab.html" title="cluster_tab"
+             accesskey="P">previous</a> |</li>
+      </ul>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Bradley Harden.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>
