@@ -17,12 +17,12 @@ In the following tutorial, the code blocks assume that the ``nmrpeaklists`` libr
 Data structures
 ===============
 
-The ``nmrpeaklists`` library provides three data structures that aim to mimic the structure of a peak list. A :class:`~.peaklist.PeakList` object represents an entire peak list and is composed of a sequence of :class:`~.peaklist.Peak` objects. Each :class:`~.peaklist.Peak` object represents a single line in a peak list and is composed of a sequence of :class:`~.peaklist.Spin` objects.
+The ``nmrpeaklists`` library provides three data structures that aim to mimic the structure of a peak list. A :class:`.PeakList` object represents an entire peak list and is composed of a sequence of :class:`.Peak` objects. Each :class:`.Peak` object represents a single line in a peak list and is composed of a sequence of :class:`.Spin` objects.
 
 Spin
 ----
 
-A :class:`~.peaklist.Spin` object is a container that holds attributes of a particular NMR spin resonance. A peak in an N-dimensional NMR spectrum is associated with N different spin resonances. :class:`~.peaklist.Spin` objects aggregate attributes of the associated spin resonances, like chemical shift, assignment, line width, etc. The following three attributes are pre-defined for each :class:`~.peaklist.Spin` object:
+A :class:`.Spin` object is a container that holds attributes of a particular NMR spin resonance. A peak in an N-dimensional NMR spectrum is associated with N different spin resonances. :class:`.Spin` objects aggregate attributes of the associated spin resonances, like chemical shift, assignment, line width, etc. The following three attributes are pre-defined for each :class:`.Spin` object:
 
 +-----------+----------------------------------------------+
 | Attribute | Meaning                                      |
@@ -34,7 +34,7 @@ A :class:`~.peaklist.Spin` object is a container that holds attributes of a part
 | atom      | Atom name                                    |
 +-----------+----------------------------------------------+
 
-Other attributes may be added to :class:`~.peaklist.Spin` objects as necessary. The following table provides a list of suggested attribute names for some common spin parameters:
+Other attributes may be added to :class:`.Spin` objects as necessary. The following table provides a list of suggested attribute names for some common spin parameters:
 
 +-----------+--------------------------------------------------------+
 | Attribute | Meaning                                                |
@@ -46,7 +46,7 @@ Other attributes may be added to :class:`~.peaklist.Spin` objects as necessary. 
 | width     | Line width of the peak in the corresponding dimension  |
 +-----------+--------------------------------------------------------+
 
-:class:`~.peaklist.Spin` attributes can be set upon initializing the :class:`~.peaklist.Spin` or added to the :class:`~.peaklist.Spin` after creation.
+:class:`.Spin` attributes can be set upon initializing the :class:`.Spin` or added to the :class:`.Spin` after creation.
 
 .. code-block:: python
 
@@ -60,7 +60,7 @@ Other attributes may be added to :class:`~.peaklist.Spin` objects as necessary. 
 Peak
 ----
 
-A :class:`~.peaklist.Peak` object represents a single line in a peak list. It can be treated as a mutable sequence of :class:`~.peaklist.Spin` objects and can be used like any normal Python list. To initialize a :class:`~.peaklist.Peak` object, use the keyword argument ``spins`` to provide a list of :class:`~.peaklist.Spin` objects.
+A :class:`.Peak` object represents a single line in a peak list. It can be treated as a mutable sequence of :class:`.Spin` objects and can be used like any normal Python list. To initialize a :class:`.Peak` object, use the keyword argument ``spins`` to provide a list of :class:`.Spin` objects.
 
 .. code-block:: python
 
@@ -75,7 +75,7 @@ A :class:`~.peaklist.Peak` object represents a single line in a peak list. It ca
     >>> [spin.atom for spin in peak]
     ['H', 'CA', 'HB']
 
-Each :class:`~.peaklist.Peak` object may have additional attributes that relate to the peak as a whole. For example, :class:`~.peaklist.Peak` objects created from XEASY files usually have a ``volume`` attribute, whereas :class:`~.peaklist.Peak` objects created from UPL files have a ``distance`` attribute. Furthermore, arbitrary attributes may be added to each :class:`~.peaklist.Peak` as needed. For example, when processing CEST data, users may want to add a ``CEST_profile`` attribute to each peak. Additional attributes can be added as keyword arguments at initialization or as attributes after the :class:`~.peaklist.Peak` has been created.
+Each :class:`.Peak` object may have additional attributes that relate to the peak as a whole. For example, :class:`.Peak` objects created from XEASY files usually have a ``volume`` attribute, whereas :class:`.Peak` objects created from UPL files have a ``distance`` attribute. Furthermore, arbitrary attributes may be added to each :class:`.Peak` as needed. For example, when processing CEST data, users may want to add a ``CEST_profile`` attribute to each peak. Additional attributes can be added as keyword arguments at initialization or as attributes after the :class:`.Peak` has been created.
 
 .. code-block:: python
 
@@ -92,7 +92,7 @@ Each :class:`~.peaklist.Peak` object may have additional attributes that relate 
 PeakList
 --------
 
-:class:`~.peaklist.PeakList` objects are mutable sequences of :class:`~.peaklist.Peak` objects and can be used as if they were Python lists.
+:class:`.PeakList` objects are mutable sequences of :class:`.Peak` objects and can be used as if they were Python lists.
 
 .. code-block:: python
 
@@ -105,12 +105,12 @@ PeakList
     >>> peak.volume
     50000
 
-Just like :class:`~.peaklist.Peak` objects, :class:`~.peaklist.PeakList` objects also have attributes representing properties belonging to the peak list as a whole. The following attributes are pre-defined and are calculated by each :class:`~.peaklist.PeakList` object:
+Just like :class:`.Peak` objects, :class:`.PeakList` objects also have attributes representing properties belonging to the peak list as a whole. The following attributes are pre-defined and are calculated by each :class:`.PeakList` object:
 
 dims
 ~~~~
 
-The ``dims`` attribute is an integer specifying the number of dimensions in the peak list. It corresponds to the number of :class:`~.peaklist.Spin` objects in each :class:`~.peaklist.Peak` object of the :class:`~.peaklist.PeakList`. An ``AttributeError`` is raised if the :class:`~.peaklist.PeakList` is empty or if any two :class:`~.peaklist.Peak` objects in the :class:`~.peaklist.PeakList` contain a different number of :class:`~.peaklist.Spin` objects. The following should always be true for a non-empty :class:`~.peaklist.PeakList`:
+The ``dims`` attribute is an integer specifying the number of dimensions in the peak list. It corresponds to the number of :class:`.Spin` objects in each :class:`.Peak` object of the :class:`.PeakList`. An ``AttributeError`` is raised if the :class:`.PeakList` is empty or if any two :class:`.Peak` objects in the :class:`.PeakList` contain a different number of :class:`.Spin` objects. The following should always be true for a non-empty :class:`.PeakList`:
 
 .. code-block:: python
 
@@ -121,7 +121,7 @@ The ``dims`` attribute is an integer specifying the number of dimensions in the 
 anchors
 ~~~~~~~
 
-The ``anchors`` attribute specifies which dimensions of the peak list correspond to spin anchors. A spin anchor is a directly attached proton/heavy atom pair. Each spin anchor is represented by a tuple of two integers, where the integers are indices into :class:`~.peaklist.Peak` objects to extract the two corresponding :class:`~.peaklist.Spin` objects that form the spin anchor. The index of the proton spin always comes first. The ``anchors`` attribute of a :class:`~.peaklist.PeakList` is a list of tuples indicating the spin anchors. Only one anchor is possible in 2D and 3D peak lists, but two anchors are possible in 4D peak lists.
+The ``anchors`` attribute specifies which dimensions of the peak list correspond to spin anchors. A spin anchor is a directly attached proton/heavy atom pair. Each spin anchor is represented by a tuple of two integers, where the integers are indices into :class:`.Peak` objects to extract the two corresponding :class:`.Spin` objects that form the spin anchor. The index of the proton spin always comes first. The ``anchors`` attribute of a :class:`.PeakList` is a list of tuples indicating the spin anchors. Only one anchor is possible in 2D and 3D peak lists, but two anchors are possible in 4D peak lists.
 
 .. code-block:: python
 
@@ -184,7 +184,7 @@ The :class:`~.files.AssignmentFile` class defines an interface for this mapping.
 | CARA anchor peak list | :class:`~.files.CaraAnchorFile`  |
 +-----------------------+----------------------------------+
 
-Objects of :class:`~.files.AssignmentFile` subclasses can be used directly, as if they were a dictionary mapping spin ID values to :class:`~.peaklist.Assignment` tuples. When the XEASY peak list is read, each :class:`~.peaklist.Spin` in the :class:`~.peaklist.PeakList` is given a ``spin_id`` attribute. The :class:`~.files.AssignmentFile` method :class:`~.files.AssignmentFile.assign_peaklist` takes a :class:`~.peaklist.PeakList` and sets the ``res_type``, ``res_num`` and ``atom`` attributes for each :class:`~.peaklist.Spin` based on its ``spin_id`` attribute.
+Objects of :class:`~.files.AssignmentFile` subclasses can be used directly, as if they were a dictionary mapping spin ID values to :class:`.Assignment` tuples. When the XEASY peak list is read, each :class:`.Spin` in the :class:`.PeakList` is given a ``spin_id`` attribute. The :class:`~.files.AssignmentFile` method :class:`~.files.AssignmentFile.assign_peaklist` takes a :class:`.PeakList` and sets the ``res_type``, ``res_num`` and ``atom`` attributes for each :class:`.Spin` based on its ``spin_id`` attribute.
 
 .. code-block:: python
 
@@ -212,7 +212,7 @@ Modifying a peak list
 Sorting
 -------
 
-To facilitate sorting a :class:`~peaklist.PeakList` by its :class:`~.peaklist.Peak` assignments, :class:`~.peaklist.Spin` objects may be compared to each other with the comparison operators (<, <=, > and >=). These comparisons are only influenced by the assignment data, not by any other attributes of the spins. The default sorting order is by residue number, then sidechain position and finally atom name. Unassigned spins are always sorted last.
+To facilitate sorting a :class:`.PeakList` by its :class:`.Peak` assignments, :class:`.Spin` objects may be compared to each other with the comparison operators (<, <=, > and >=). These comparisons are only influenced by the assignment data, not by any other attributes of the spins. The default sorting order is by residue number, then sidechain position and finally atom name. Unassigned spins are always sorted last.
 
 .. code-block:: python
 
