@@ -75,7 +75,7 @@ A :class:`~.peaklist.Peak` object represents a single line in a peak list. It ca
     >>> [spin.atom for spin in peak]
     ['H', 'CA', 'HB']
 
-Each :class:`~.peaklist.Peak` object may have additional attributes that relate to the peak as a whole. For example, :class:`~.peaklist.Peak` objects created from XEASY files usually have a ``volume`` attribute whereas :class:`~.peaklist.Peak` objects created from UPL files have a ``distance`` attribute. Furthermore, arbitrary attributes may be added to each :class:`~.peaklist.Peak` as needed. For example, when processing CEST data, users may want to add a ``CEST_profile`` attribute to each peak. Additional attributes can be added as keyword arguments at initialization or as attributes after the fact.
+Each :class:`~.peaklist.Peak` object may have additional attributes that relate to the peak as a whole. For example, :class:`~.peaklist.Peak` objects created from XEASY files usually have a ``volume`` attribute, whereas :class:`~.peaklist.Peak` objects created from UPL files have a ``distance`` attribute. Furthermore, arbitrary attributes may be added to each :class:`~.peaklist.Peak` as needed. For example, when processing CEST data, users may want to add a ``CEST_profile`` attribute to each peak. Additional attributes can be added as keyword arguments at initialization or as attributes after the :class:`~.peaklist.Peak` has been created.
 
 .. code-block:: python
 
@@ -121,7 +121,7 @@ The ``dims`` attribute is an integer specifying the number of dimensions in the 
 anchors
 ~~~~~~~
 
-The ``anchors`` attribute specifies which dimensions of the peak list correspond to spin anchors. A spin anchor is a directly attached proton/heavy atom pair. Each spin anchor is represented by a tuple of two integers, where the integers index :class:`~.peaklist.Peak` objects to extract the two corresponding :class:`~.peaklist.Spin` objects that form the anchor. The index of the proton spin always comes first. The ``anchors`` attribute of a :class:`~.peaklist.PeakList` is a list of tuples indicating the spin anchors. Only one anchor is possible in 2D and 3D peak lists, but two anchors are possible in 4D peak lists.
+The ``anchors`` attribute specifies which dimensions of the peak list correspond to spin anchors. A spin anchor is a directly attached proton/heavy atom pair. Each spin anchor is represented by a tuple of two integers, where the integers are indices into :class:`~.peaklist.Peak` objects to extract the two corresponding :class:`~.peaklist.Spin` objects that form the spin anchor. The index of the proton spin always comes first. The ``anchors`` attribute of a :class:`~.peaklist.PeakList` is a list of tuples indicating the spin anchors. Only one anchor is possible in 2D and 3D peak lists, but two anchors are possible in 4D peak lists.
 
 .. code-block:: python
 
@@ -160,7 +160,7 @@ Alternatively, if you need to modify the object before reading the peak list, yo
 
 .. code-block:: python
 
-    >>> peaklistfile = np============l.XeasyFile()
+    >>> peaklistfile = npl.XeasyFile()
     >>> peaklist = peaklistfile.read_peaklist(filename)
 
 Objects of :class:`~.files.PeakListFile` subclasses are usually only edited when the corresponding file type is customizable, i.e. columns in the peak list can be added, removed and rearranged. This is accomplished by modifying the object's :class:`~.columns.ColumnTemplate`. For more information, see `Column Templates`_.
@@ -168,7 +168,7 @@ Objects of :class:`~.files.PeakListFile` subclasses are usually only edited when
 XEASY format
 ------------
 
-The XEASY peak list format specifies a set of spin IDs for each peak, but it does not include any assignment data directly. Assignment data can only be obtained by referencing each spin ID against a mapping of spin IDs to their respective assignments. Consequently, users must perform an extra step when reading XEASY peak lists in order to incorporate assignment data.
+The XEASY peak list format provides a set of spin IDs for each peak, but it does not include any assignment data directly. Assignment data can only be obtained by referencing each spin ID against a mapping of spin IDs to their respective assignments. Consequently, users must perform an extra step when reading XEASY peak lists in order to incorporate assignment data.
 
 The mapping between spin IDs and spin assignments can be provided in several different forms. The standard approach uses a sequence file and atom list to create the mapping. Alternatively, if the spin IDs relate to a CARA repository, then users can create the mapping as a single file using the :ref:`Lua script <lua_script>` provided with this library. Finally, if the XEASY peak list is an anchor peak list from CARA, then the peak list itself contains the assignment data as comments interleaved within the data.
 
@@ -195,7 +195,7 @@ Objects of :class:`~.files.AssignmentFile` subclasses can be used directly, as i
     >>> spin.spin_id
     194
     >>> assignments = npl.CaraSpinsFile().read_file(spins_filename)
-    >>> assignments[149]
+    >>> assignments[194]
     Assignment(res_type='H', res_num=43, atom='HA')
     >>> peaklist = assignments.assign_peaklist(peaklist)
     >>> (spin.res_type, spin.res_num, spin.atom)
@@ -212,7 +212,7 @@ Modifying a peak list
 Sorting
 -------
 
-To facilitate sorting the peaks by their assignments, Spin objects may be compared to each other with the comparison operators (<, <=, > and >=). These comparisons are only influenced by the assignment data, not by any other attributes of the spins. The default sorting order is by residue number, then sidechain position and finally atom name. Unassigned spins are always sorted last.
+To facilitate sorting a :class:`~peaklist.PeakList` by its :class:`~.peaklist.Peak` assignments, :class:`~.peaklist.Spin` objects may be compared to each other with the comparison operators (<, <=, > and >=). These comparisons are only influenced by the assignment data, not by any other attributes of the spins. The default sorting order is by residue number, then sidechain position and finally atom name. Unassigned spins are always sorted last.
 
 .. code-block:: python
 
@@ -240,7 +240,7 @@ To facilitate sorting the peaks by their assignments, Spin objects may be compar
     [Spin(res_num=28, atom='HG'),
      Spin(res_num=17, atom='HA')])]
 
-Use the ``sort_by_assignment`` :class:`.PeakList` method to change the default sort order. On its own, the only change made by ``sort_by_assignment`` is to include the influence of spin anchors when sorting. Alternatively, you can manually specify the sort order of dimensions using the ``order`` keyword argument.
+Use the ``sort_by_assignment`` :class:`.PeakList` method to change the default sort order. By default, ``sort_by_assignment`` takes into account the spin anchors, but it still gives the highest sorting priority to the lowest-index Spins. Alternatively, you can manually specify the sort order using the ``order`` keyword argument.
 
 .. code-block:: python
 
