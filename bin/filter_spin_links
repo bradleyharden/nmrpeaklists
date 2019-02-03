@@ -2,6 +2,7 @@
 import sys
 from textwrap import dedent
 from copy import deepcopy
+from os.path import exists
 import nmrpeaklists as npl
 
 if len(sys.argv) < 4:
@@ -53,14 +54,19 @@ header = ['VARS XY_NAME Z_NAME\n', 'FORMAT %s %s\n', '\n']
 lines = header + move_file
 to_move = npl.PipeFile().read_peaklist_lines(lines)
 
-# Read the source and target files
+# Read the source file
 assignments = npl.CaraSpinsFile().read_file(sys.argv[4])
 source_file = npl.XeasyFile()
 source = source_file.read_peaklist(sys.argv[2])
 source = assignments.assign_peaklist(source)
+
+# Read the target file, or create it if it doesn't exist
 target_file = npl.XeasyFile()
-target = target_file.read_peaklist(sys.argv[3])
-target = assignments.assign_peaklist(target)
+if exists(sys.argv[3]):
+    target = target_file.read_peaklist(sys.argv[3])
+    target = assignments.assign_peaklist(target)
+else:
+    target = npl.PeakList()
 
 # Move peaks
 for peak in source:
@@ -72,3 +78,4 @@ for peak in source:
         peak.commented = True
 source_file.write_peaklist(source, sys.argv[2])
 target_file.write_peaklist(target, sys.argv[3])
+

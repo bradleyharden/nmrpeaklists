@@ -126,8 +126,13 @@ for default_id, peak in enumerate(peaklist, 1):
         names = ' '.join(spin.name for spin in peak)
         raise ValueError('{} found in more than one cluster'.format(names))
 
-# Add the new columns to the old template and write the peak list
-cluster_columns = [npl.PeakAttrColumn('CLUSTID', '%4d', 'cluster_id'),
-                   npl.PeakAttrColumn('MEMCNT', '%2d', 'cluster_size')]
-pipe_file.template.insert_default(cluster_columns)
+# If the cluster columns are not in the template, add them.
+# Then write the peaklist
+column_names = [column.name for column in pipe_file.template]
+columns_to_add = []
+if 'CLUSTID' not in column_names:
+    columns_to_add.append(npl.PeakAttrColumn('CLUSTID', '%4d', 'cluster_id'))
+if 'MEMCNT' not in column_names:
+    columns_to_add.append(npl.PeakAttrColumn('MEMCNT', '%2d', 'cluster_size'))
+pipe_file.template.insert_default(columns_to_add)
 pipe_file.write_peaklist(peaklist, args.out_file)

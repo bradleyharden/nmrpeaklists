@@ -20,12 +20,11 @@ in CYANA to assign these spin links to the maximum UPL distance.
 
 There are two ways to filter the fits. You can set a lower limit for the
 fitted volume with the option --vol_lower (default 0), and you can set
-an upper limit to the fitted width in each dimension with the option
---width_upper (default +Inf). The upper limits should be specified using
-Python list syntax. List multiplication and addition syntax is supported
-here (e.g. [20,20,20] or [20]*3), but the list MUST NOT include any
-spaces. The lower limit for the fitted width is hardcoded to 0. Peaks
-with fitted widths exactly equal to 0 or the upper limit are rejected.
+limits on the fitted width in each dimension with the options
+--width_lower (default 0) and --width_upper (default +Inf). The limits
+should be specified using Python list syntax. List multiplication and
+addition syntax is supported here (e.g. [20,20,20], [20]*2+[20]), but
+the list MUST NOT include any spaces.
 """
 parser = ap.ArgumentParser(description=description,
                            formatter_class=ap.RawDescriptionHelpFormatter)
@@ -40,6 +39,9 @@ parser.add_argument('--rej', dest='rej_prefix', metavar='FILE',
                     help='prefix for rejected files (default rejected)')
 parser.add_argument('--vol_lower', dest='threshold', default=0, type=float,
                     help='volume threshold (default 0)')
+parser.add_argument('--width_lower', dest='width_lower', metavar='W',
+                    type=str, help='lower limits for fitted ' +
+                    'width in each dimension (default 0 for each)')
 parser.add_argument('--width_upper', dest='width_upper', metavar='W',
                     type=str, help='upper limits for fitted ' +
                     'width in each dimension (default +Inf for each)')
@@ -54,7 +56,14 @@ pipe_file = npl.PipeFile()
 pipe_file.template.insert_default(columns)
 peaklist = pipe_file.read_peaklist(args.fit_file)
 
-# Determine width upper-limits
+# Determine width limits
+if args.width_lower is None:
+    width_lower = [float(0)] * peaklist.dims
+else:
+    width_lower = npl.parse_list_literal(args.width_lower)
+    if len(width_lower) != peaklist.dims:
+        parser.error("number of width lower limits doesn't match peak list " +
+                     "dimensionality")
 if args.width_upper is None:
     width_upper = [float('inf')] * peaklist.dims
 else:
@@ -69,7 +78,8 @@ rejected = npl.PeakList()
 for peak in peaklist:
     above_threshold = peak.volume > args.threshold
     widths = [spin.width for spin in peak]
-    within_bounds = all(0 < w < u for w, u in zip(widths, width_upper))
+    zipped = zip(width_lower, widths, width_upper)
+    within_bounds = all(l < w < u for l, w, u in zipped)
     if above_threshold and within_bounds:
         accepted.append(peak)
     else:
@@ -87,3 +97,4 @@ if rejected:
     pipe_file.write_peaklist(rejected, filename)
     filename = args.rej_prefix + '.peaks'
     npl.XeasyFile().write_peaklist(rejected, filename)
+

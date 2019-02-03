@@ -86,7 +86,7 @@ def flatten(item):
 def parse_list_literal(string):
     """
     """
-    single_list = r'(\[[^\[\]]*\])'
+    single_list = r'(\[.*\])'
     list_mult = r'(\*\d+)?'
     pattern = '^' + single_list + list_mult + '$'
     final_list = []
