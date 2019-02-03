@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>filter_spin_links &#8212; nmrpeaklists 0.9 documentation</title>
+    <link rel="stylesheet" href="../_static/pydoctheme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="find_eliminated_spin_links" href="find_eliminated_spin_links.html" />
+    <link rel="prev" title="filter_NOESY_fits" href="filter_NOESY_fits.html" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <link rel="shortcut icon" type="image/png" href="../_static/favicon.png" />
+    <meta name="viewport" content="width=device-width,initial-scale=0.8">
+    
+    
+
+  </head><body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="responsive-menu"><a href="#sidebar-anchor" title="Navigation">&#9776;</a></li>
+        <li><a href="../index.html">nmrpeaklists 0.9 documentation</a> &#187;</li>
+          <li><a href="../scripts.html" accesskey="U">Scripts</a> &#187;</li> 
+      </ul>
+    </div>
+    
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="filter-spin-links">
+<span id="id1"></span><h1>filter_spin_links<a class="headerlink" href="#filter-spin-links" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Filter 3D Xeasy spin links based on a file for use with CYANA
+
+This script allows you to easily mark a list of spin links as &quot;bad
+fits&quot;. These spin links can still be retained for CYANA calculations,
+but they are set to the maximum allowed distance.
+
+For each spin link in the move file, copy the corresponding peak in the
+source Xeasy file and paste it in the target Xeasy file. Change the
+integration volume of each peak in the target file to 1.0. Retain the
+peak in the source XEASY file, but comment it.
+
+When using the target Xeasy file with CYANA calibration, the
+corresponding UPL will be set to the maximum allowed distance.
+
+A CARA spin ID file is required, because XEASY files do not store
+assignment information. Use the CARA Lua script provided in the
+nmrpeaklists library to create it.
+
+Move file format
+----------------
+Each line in the file is a peak. Each peak is a list of spin names. Each
+spin name should contain three parts: a one-letter code for the amino
+acid type; an integer residue number; and finally a dash followed by an
+atom name. When two atoms form a spin anchor, their names should be
+combined into one. A spin anchor is a directly attached hydrogen/heavy
+atom pair. For a spin anchor, list the residue type and residue number
+once and combine the atom names with a slash. You can add or remove
+peaks to be filtered with the &#39;#&#39; symbol.
+
+Example file
+------------
+    W37-HA/CA     L87-HD2
+  # I29-HG2/CG2   Y74-HE
+
+Usage:
+./filter_spin_links  move_file  source  target  spin_id_file
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+    <a id="sidebar-anchor"></a>
+    
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="filter_NOESY_fits.html"
+                        title="previous chapter">filter_NOESY_fits</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="find_eliminated_spin_links.html"
+                        title="next chapter">find_eliminated_spin_links</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/scripts/filter_spin_links.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="find_eliminated_spin_links.html" title="find_eliminated_spin_links"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="filter_NOESY_fits.html" title="filter_NOESY_fits"
+             accesskey="P">previous</a> |</li>
+      </ul>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Bradley Harden.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>

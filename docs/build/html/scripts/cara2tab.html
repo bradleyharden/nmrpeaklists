@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>cara2tab &#8212; nmrpeaklists 0.9 documentation</title>
+    <link rel="stylesheet" href="../_static/pydoctheme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="cluster_tab" href="cluster_tab.html" />
+    <link rel="prev" title="Scripts" href="../scripts.html" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <link rel="shortcut icon" type="image/png" href="../_static/favicon.png" />
+    <meta name="viewport" content="width=device-width,initial-scale=0.8">
+    
+    
+
+  </head><body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="responsive-menu"><a href="#sidebar-anchor" title="Navigation">&#9776;</a></li>
+        <li><a href="../index.html">nmrpeaklists 0.9 documentation</a> &#187;</li>
+          <li><a href="../scripts.html" accesskey="U">Scripts</a> &#187;</li> 
+      </ul>
+    </div>
+    
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="cara2tab">
+<span id="id1"></span><h1>cara2tab<a class="headerlink" href="#cara2tab" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: cara2tab [-h] --in cara.peaks [--spinID cara.spins] [--ft test.ft2]
+                [--order ORDER] [--cal [C [C ...]]] [-e EXP [N ...]]
+                [-c VAR FMT DEFAULT] [--out cara.tab]
+
+    Convert a CARA anchor or strip peak list to NMRPipe .tab file
+
+    Assignment
+    ----------
+    CARA uses the Xeasy format for its peak lists. This format does not
+    contain assignment data directly. Instead, it includes a spin ID
+    number for each chemical shift in the peak list, where each spin ID
+    number corresponds to a spin within CARA.
+
+    Assignment data must be added to STRIP peak lists using a spin ID file.
+    Spin ID files are generated using the CARA Lua script included in the
+    nmrpeaklists library. Use the --spinID option to provide this spin ID
+    file.
+
+    If no spin ID file is provided, it will be assumed that the peak list is
+    an ANCHOR peak list. CARA anchor peak lists include the assignment data
+    for each data line as a comment immediately following it. In this case,
+    the assignments can be extracted directly from the peak list. No spin ID
+    file is required.
+
+    Correspondence to an NMRPipe spectrum
+    -------------------------------------
+    If you plan to use the NMRPipe .tab file with nlinLS to fit data, then
+    the peak list will correspond to a particular NMRPipe spectrum. The
+    script needs access to the header of that spectrum to correctly
+    calculate the location of each peak in units of points. Use the --ft
+    option to provide the spectrum. It can be either a monolithic file or
+    the first plane from a series.
+
+    Beware, the order of the columns in the peak list may not match the
+    order of dimensions in the spectrum.  Use the option --order to specify
+    which column of the peak list (from left to right) corresponds to which
+    dimension in the NMRPipe spectrum (XYZA).
+
+    Use the --cal option to enter the calibration for each dimension in PPM.
+    The order here should match the order of dimensions in the NMRPipe
+    spectrum. These values should be the same as the calibration values in
+    CARA.
+
+    nlinLS Columns
+    --------------
+    If you plan to use the .tab file for fitting data with nlinLS, then you
+    will need to add the appropriate fitting columns. Columns can be added
+    in pre-set groups based on common experiments, or they can be added
+    individually.
+
+    Use the &#39;-e&#39; option to add all the fitting parameters needed for one of
+    the experiment types listed. Use the &#39;-c&#39; option to specify individual
+    parameter columns. Columns specified with the &#39;-c&#39; option will
+    overwrite corresponding columns set with &#39;-e&#39;.
+
+    You must provide three values when specifying a column with &#39;-c&#39;. The
+    first two are the values that appear in the VARS and FORMAT lines of
+    the NMRPipe .tab file, respectively. The final value will be the default
+    value used for each peak in the column.
+
+    In some cases, several columns are related to one another. These fall
+    into two categories, either there is one column for each dimension
+    (e.g. XW, YW, ZW) or there are multiple columns for a single dimension
+    (e.g. Z_A0, Z_A1 ...). In these cases, use &#39;%s&#39; or &#39;%d&#39; in the VARS
+    string to indicate that the string should be expanded with dimension
+    labels (X, Y, Z ...) or with list indices (0, 1, 2 ...), respectively.
+    The default values for these columns must be specified as a Python list.
+    List multiplication and addition syntax is supported here
+    (e.g. [1]+[0.5]*64), but the list MUST NOT include any spaces.
+
+    Supported Experiments
+    ---------------------
+    The following pre-made experiment types are available. Use the given
+    experiment name with the &#39;-e&#39; option to add the corresponding nlinLS
+    fitting columns to the .tab file. Some experiments take a second
+    argument to the &#39;-o&#39; option. See the notes for an explanation.
+
+    The columns HEIGHT and XW, YW, etc. are added for all experiments.
+
+        Experiment    Columns         Notes
+        ----------    -------         -----
+        Volume        VOLUME
+        R1            Z_A
+        R2            Z_A
+        Het-NOE       Z_A0, Z_A1
+        CEST N        Z_A0 - Z_A(N)   N = profile points+1 (for reference)
+        RD N          Z_A0 - Z_A(N)   N = profile points+1 (for reference)
+
+    The default value for each column added is provided in the table below.
+    These values can be overridden with the &#39;-c&#39; option.
+
+        Column                        Default
+        ------                        -------
+        HEIGHT                          5e7
+        XW, YW, ZW, AW                   2
+        VOLUME                           0
+        Z_A (R1)                        -1
+        Z_A (R2)                       -10
+        Z_A0 (Het-NOE, CEST, RD)         1.0
+        Z_A1 (Het-NOE)                   0.75
+        Z_A1, Z_A2, ... (CEST, RD)       0.7
+
+    Examples
+    --------
+    cara2tab --in strip.peaks --spinID cara.spins --ft NOESY.ft3
+             --order ZXY --cal 0.01 -0.05 0.11 -e Volume
+
+    cara2tab --in anchor.peaks --ft test.ft2 -e R1
+
+    cara2tab --in anchor.peaks --ft test.ft2 -e R1 -c HEIGHT %12.5e 1e8
+
+    cara2tab --in anchor.peaks --ft test.ft2 -e R2 -c %sW %6.3f [8,5]
+
+    cara2tab --in anchor.peaks --ft test.ft2 -e CEST 33
+             -c Z_A%d %8.5f [1]+[0.6]*32
+    
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --spinID cara.spins  CARA spin ID file
+  --ft test.ft2        NMRPipe spectrum
+  --order ORDER        correspondence between CARA peak list columns (left to
+                       right) and spectrum dimensions (XYZA), default XYZA
+  --cal [C [C ...]]    calibration for each dimension of the .ft file (in PPM)
+  -e EXP [N ...]       Pre-made experiments: Volume R1 R2 Het-NOE RD CEST
+  -c VAR FMT DEFAULT   Create custom column
+  --out cara.tab       NMRPipe .tab file (default cara.tab)
+
+required arguments:
+  --in cara.peaks      CARA peak list
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+    <a id="sidebar-anchor"></a>
+    
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../scripts.html"
+                        title="previous chapter">Scripts</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="cluster_tab.html"
+                        title="next chapter">cluster_tab</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/scripts/cara2tab.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="cluster_tab.html" title="cluster_tab"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../scripts.html" title="Scripts"
+             accesskey="P">previous</a> |</li>
+      </ul>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Bradley Harden.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>

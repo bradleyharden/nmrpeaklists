@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>nmrpeaklists.columns &#8212; nmrpeaklists 0.9 documentation</title>
+    <link rel="stylesheet" href="../../_static/pydoctheme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <link rel="shortcut icon" type="image/png" href="../../_static/favicon.png" />
+    <meta name="viewport" content="width=device-width,initial-scale=0.8">
+    
+    
+
+  </head><body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="responsive-menu"><a href="#sidebar-anchor" title="Navigation">&#9776;</a></li>
+        <li><a href="../../index.html">nmrpeaklists 0.9 documentation</a> &#187;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nmrpeaklists.columns</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">izip</span> <span class="k">as</span> <span class="nb">zip</span>
+    <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">izip_longest</span> <span class="k">as</span> <span class="n">zip_longest</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="k">import</span> <span class="n">stderr</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">getargspec</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">permutations</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">MutableSequence</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">ANCHOR_NAME_PATTERN</span><span class="p">,</span> <span class="n">AA_1TO3</span><span class="p">,</span> <span class="n">AA_3TO1</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Column&#39;</span><span class="p">,</span> <span class="s1">&#39;IgnoreColumn&#39;</span><span class="p">,</span> <span class="s1">&#39;PeakAttrColumn&#39;</span><span class="p">,</span> <span class="s1">&#39;PeakAttrListColumn&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;SpinAttrColumn&#39;</span><span class="p">,</span> <span class="s1">&#39;Res3LetterColumn&#39;</span><span class="p">,</span> <span class="s1">&#39;PipeNameColumn&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;PipeAnchorColumn&#39;</span><span class="p">,</span> <span class="s1">&#39;SparkyNameColumn&#39;</span><span class="p">,</span> <span class="s1">&#39;ColumnGroup&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;PeakAttrListGroup&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinAttrGroup&#39;</span><span class="p">,</span> <span class="s1">&#39;PipeNameGroup&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;ColumnTemplate&#39;</span><span class="p">,</span> <span class="s1">&#39;PipeTemplate&#39;</span><span class="p">,</span> <span class="s1">&#39;SparkyTemplate&#39;</span><span class="p">,</span> <span class="s1">&#39;UplTemplate&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;XeasyTemplate&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Column"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.Column">[docs]</a><span class="k">class</span> <span class="nc">Column</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represent a peak list column and map its data to Peak objects</span>
+
+<span class="sd">    Provide a base class for representing peak list columns and define an</span>
+<span class="sd">    interface for mapping column data to Peak objects.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Name of the peak list column, should be unique within a peak list</span>
+<span class="sd">    fmt : str</span>
+<span class="sd">        printf-style format string specifying how the data should be printed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;d&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">}</span>
+    <span class="n">_sentinel</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span> <span class="o">=</span> <span class="n">fmt</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">init_args</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">getargspec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+        <span class="n">vrs</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">pairs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">repr</span><span class="p">(</span><span class="n">vrs</span><span class="p">[</span><span class="n">arg</span><span class="p">])</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">init_args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+        <span class="n">rpr</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+        <span class="k">return</span> <span class="n">rpr</span>
+
+<div class="viewcode-block" id="Column.get_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.Column.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get_value(peak[, default])</span>
+
+<span class="sd">        Get the appropriate column data from a Peak object</span>
+
+<span class="sd">        Return the value from the Peak object corresponding to the associated</span>
+<span class="sd">        peak list column. Each subclass must provide its own definition of</span>
+<span class="sd">        this interface.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        peak : :class:`~.peaklist.Peak`</span>
+<span class="sd">            Peak object containing the corresponding column data</span>
+<span class="sd">        default : optional</span>
+<span class="sd">            If the Peak does not contain the corresponding data, return</span>
+<span class="sd">            ``default`` if provided, otherwise raise an Exception.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        value</span>
+<span class="sd">            The column value taken from the Peak object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="Column.set_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.Column.set_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the appropriate value in a Peak object from peak list column data</span>
+
+<span class="sd">        Set the value in the Peak object corresponding to the associated peak</span>
+<span class="sd">        list column. Each subclass must provide its own definition of this</span>
+<span class="sd">        interface.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        peak : :class:`~.peaklist.Peak`</span>
+<span class="sd">            Peak object in which to set the column data</span>
+<span class="sd">        value</span>
+<span class="sd">            The column value to set in the Peak object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="Column.get_string"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.Column.get_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get column data from a Peak object and return a formatted string</span>
+
+<span class="sd">        Return a formatted string representing the value from the Peak object</span>
+<span class="sd">        corresponding to the associated peak list column.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        peak : :class:`~.peaklist.Peak`</span>
+<span class="sd">            Peak object containing the corresponding column data</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        value : str</span>
+<span class="sd">            A formatted string of the column data for the Peak object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Column.set_string"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.Column.set_string">[docs]</a>    <span class="k">def</span> <span class="nf">set_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the appropriate value in a Peak object from a formatted string</span>
+
+<span class="sd">        Set the value in the Peak object corresponding to the associated peak</span>
+<span class="sd">        list column based on a formatted string.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        peak : :class:`~.peaklist.Peak`</span>
+<span class="sd">            Peak object in which to set the column data</span>
+<span class="sd">        string : str</span>
+<span class="sd">            Formatted string of the column data to set in the Peak object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">typ</span> <span class="o">=</span> <span class="n">Column</span><span class="o">.</span><span class="n">types</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fmt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="s1">&#39;invalid format string </span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fmt</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="n">typ</span><span class="p">(</span><span class="n">string</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">update_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="IgnoreColumn"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.IgnoreColumn">[docs]</a><span class="k">class</span> <span class="nc">IgnoreColumn</span><span class="p">(</span><span class="n">Column</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;%</span><span class="si">{:d}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">string</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">IgnoreColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="n">string</span>
+
+<div class="viewcode-block" id="IgnoreColumn.get_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.IgnoreColumn.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">string</span></div>
+
+<div class="viewcode-block" id="IgnoreColumn.set_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.IgnoreColumn.set_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="IgnoreColumn.get_string"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.IgnoreColumn.get_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">string</span></div>
+
+<div class="viewcode-block" id="IgnoreColumn.set_string"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.IgnoreColumn.set_string">[docs]</a>    <span class="k">def</span> <span class="nf">set_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+        <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="PeakAttrColumn"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PeakAttrColumn">[docs]</a><span class="k">class</span> <span class="nc">PeakAttrColumn</span><span class="p">(</span><span class="n">Column</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PeakAttrColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr</span> <span class="o">=</span> <span class="n">attr</span>
+
+<div class="viewcode-block" id="PeakAttrColumn.get_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PeakAttrColumn.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">err</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">default</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="PeakAttrColumn.set_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PeakAttrColumn.set_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="PeakAttrListColumn"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PeakAttrListColumn">[docs]</a><span class="k">class</span> <span class="nc">PeakAttrListColumn</span><span class="p">(</span><span class="n">Column</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PeakAttrListColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr</span> <span class="o">=</span> <span class="n">attr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">length</span> <span class="k">if</span> <span class="n">length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="PeakAttrListColumn.get_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PeakAttrListColumn.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">err</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">default</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="PeakAttrListColumn.set_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PeakAttrListColumn.set_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+            <span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+            <span class="n">lst</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">,</span> <span class="n">lst</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="n">lst</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+            <span class="n">pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span>
+            <span class="n">lst</span> <span class="o">+=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">pad</span>
+            <span class="n">lst</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div></div>
+
+
+<div class="viewcode-block" id="SpinAttrColumn"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.SpinAttrColumn">[docs]</a><span class="k">class</span> <span class="nc">SpinAttrColumn</span><span class="p">(</span><span class="n">Column</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SpinAttrColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr</span> <span class="o">=</span> <span class="n">attr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+
+<div class="viewcode-block" id="SpinAttrColumn.get_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.SpinAttrColumn.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">peak</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">err</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">default</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="SpinAttrColumn.set_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.SpinAttrColumn.set_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">peak</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Res3LetterColumn"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.Res3LetterColumn">[docs]</a><span class="k">class</span> <span class="nc">Res3LetterColumn</span><span class="p">(</span><span class="n">SpinAttrColumn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%3s</span><span class="s1">&#39;</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;res_type&#39;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Res3LetterColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Res3LetterColumn.get_string"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.Res3LetterColumn.get_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">string</span> <span class="o">=</span> <span class="n">AA_1TO3</span><span class="p">[</span><span class="n">value</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;can&#39;t get 3-letter amino acid string for unassigned &quot;</span>
+                   <span class="s2">&quot;spin in peak: </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">peak</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">string</span></div>
+
+<div class="viewcode-block" id="Res3LetterColumn.set_string"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.Res3LetterColumn.set_string">[docs]</a>    <span class="k">def</span> <span class="nf">set_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">AA_3TO1</span><span class="p">[</span><span class="n">string</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;can&#39;t get 1-letter amino acid string for unassigned &quot;</span>
+                   <span class="s2">&quot;spin in peak: </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">peak</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="PipeNameColumn"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PipeNameColumn">[docs]</a><span class="k">class</span> <span class="nc">PipeNameColumn</span><span class="p">(</span><span class="n">SpinAttrColumn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">res_width</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">atom_width</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+        <span class="n">letter</span> <span class="o">=</span> <span class="s1">&#39;XYZA&#39;</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">letter</span> <span class="o">+</span> <span class="s1">&#39;_NAME&#39;</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;name&#39;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PipeNameColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">res_width</span> <span class="o">=</span> <span class="n">res_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atom_width</span> <span class="o">=</span> <span class="n">atom_width</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fmt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;%</span><span class="si">{:d}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">res_width</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_width</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fmt</span>
+
+    <span class="nd">@fmt</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">fmt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="PipeNameColumn.get_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PipeNameColumn.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">spin</span> <span class="o">=</span> <span class="n">peak</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">err</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">default</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">return</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="PipeNameColumn.get_string"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PipeNameColumn.get_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span>
+        <span class="n">spin</span> <span class="o">=</span> <span class="n">peak</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">pad_left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_width</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">res_name</span><span class="p">)</span>
+        <span class="n">pad_right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_width</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">atom_name</span><span class="p">)</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="n">pad_left</span><span class="p">)</span> <span class="o">+</span> <span class="n">value</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="n">pad_right</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">string</span></div>
+
+    <span class="k">def</span> <span class="nf">update_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="n">spins</span> <span class="o">=</span> <span class="p">[</span><span class="n">peak</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span> <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="n">peaklist</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">res_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">res_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">spins</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atom_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">atom_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">spins</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="PipeAnchorColumn"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PipeAnchorColumn">[docs]</a><span class="k">class</span> <span class="nc">PipeAnchorColumn</span><span class="p">(</span><span class="n">Column</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">res_width</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">atom_width</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+        <span class="n">letters</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;XYZA&#39;</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">letters</span> <span class="o">+</span> <span class="s1">&#39;_NAME&#39;</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PipeAnchorColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">res_width</span> <span class="o">=</span> <span class="n">res_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atom_width</span> <span class="o">=</span> <span class="n">atom_width</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fmt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;%</span><span class="si">{:d}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">res_width</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_width</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fmt</span>
+
+    <span class="nd">@fmt</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">fmt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="PipeAnchorColumn.get_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PipeAnchorColumn.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">spn1</span><span class="p">,</span> <span class="n">spn2</span> <span class="o">=</span> <span class="p">(</span><span class="n">peak</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">spn1</span><span class="o">.</span><span class="n">res_name</span> <span class="o">!=</span> <span class="n">spn2</span><span class="o">.</span><span class="n">res_name</span><span class="p">:</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;anchors spins not in same residue: &#39;</span>
+                       <span class="s1">&#39;</span><span class="si">{!r}</span><span class="s1"> &amp; </span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spn1</span><span class="p">,</span> <span class="n">spn2</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">Column</span><span class="o">.</span><span class="n">_sentinel</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">err</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">default</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">spn1</span><span class="o">.</span><span class="n">res_name</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">+</span> <span class="n">spn1</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">spn2</span><span class="o">.</span><span class="n">atom_name</span>
+            <span class="k">return</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="PipeAnchorColumn.set_value"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PipeAnchorColumn.set_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">ANCHOR_NAME_PATTERN</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;invalid anchor name: </span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="n">spin1</span><span class="p">,</span> <span class="n">spin2</span> <span class="o">=</span> <span class="p">(</span><span class="n">peak</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span>
+        <span class="n">spin1</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">spin2</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">spin1</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">spin2</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PipeAnchorColumn.get_string"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PipeAnchorColumn.get_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peak</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span>
+        <span class="n">spin1</span><span class="p">,</span> <span class="n">spin2</span> <span class="o">=</span> <span class="p">(</span><span class="n">peak</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span>
+        <span class="n">pad_left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_width</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">spin1</span><span class="o">.</span><span class="n">res_name</span><span class="p">)</span>
+        <span class="n">pad_right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_width</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">spin1</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">+</span> <span class="n">spin2</span><span class="o">.</span><span class="n">atom_name</span><span class="p">)</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="n">pad_left</span><span class="p">)</span> <span class="o">+</span> <span class="n">value</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="n">pad_right</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">string</span></div>
+
+    <span class="k">def</span> <span class="nf">update_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">dim</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">peaklist</span><span class="p">)]</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">]</span>
+        <span class="n">res_widths</span> <span class="o">=</span> <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">res_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">]</span>
+        <span class="n">atom_widths</span> <span class="o">=</span> <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spn</span><span class="o">.</span><span class="n">atom_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">spn</span> <span class="ow">in</span> <span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">res_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">res_widths</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atom_width</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">atom_widths</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="SparkyNameColumn"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.SparkyNameColumn">[docs]</a><span class="k">class</span> <span class="nc">SparkyNameColumn</span><span class="p">(</span><span class="n">PeakAttrColumn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%10s</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Assignment&#39;</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;sparky_name&#39;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SparkyNameColumn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="n">max_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">peak</span><span class="o">.</span><span class="n">sparky_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="n">peaklist</span><span class="p">)</span>
+        <span class="n">max_width</span> <span class="o">=</span> <span class="n">max_width</span> <span class="k">if</span> <span class="n">max_width</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="k">else</span> <span class="mi">10</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;%</span><span class="si">{:d}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_width</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="ColumnGroup"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.ColumnGroup">[docs]</a><span class="k">class</span> <span class="nc">ColumnGroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">init_args</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">getargspec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+        <span class="n">vrs</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">pairs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">repr</span><span class="p">(</span><span class="n">vrs</span><span class="p">[</span><span class="n">arg</span><span class="p">])</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">init_args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+        <span class="n">rpr</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+        <span class="k">return</span> <span class="n">rpr</span>
+
+    <span class="k">def</span> <span class="nf">generate_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="PeakAttrListGroup"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PeakAttrListGroup">[docs]</a><span class="k">class</span> <span class="nc">PeakAttrListGroup</span><span class="p">(</span><span class="n">ColumnGroup</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">possible_names</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PeakAttrListGroup</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">possible_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span> <span class="o">=</span> <span class="n">fmt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr</span> <span class="o">=</span> <span class="n">attr</span>
+
+    <span class="k">def</span> <span class="nf">generate_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">rng</span> <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="p">))</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">rng</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">rng</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">column</span> <span class="o">=</span> <span class="n">PeakAttrListColumn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+            <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">columns</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">found</span><span class="p">)</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_columns</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">columns</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">data_rows</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">,</span> <span class="p">[])</span> <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="n">peaklist</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="n">data_rows</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">col</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">col</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                    <span class="n">warn</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Warning: some values None in column </span><span class="si">{}</span><span class="s1">, &#39;</span>
+                            <span class="s1">&#39;excluding it&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">warn</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_columns</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">columns</span></div>
+
+
+<div class="viewcode-block" id="SpinAttrGroup"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.SpinAttrGroup">[docs]</a><span class="k">class</span> <span class="nc">SpinAttrGroup</span><span class="p">(</span><span class="n">ColumnGroup</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">possible_names</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SpinAttrGroup</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">possible_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span> <span class="o">=</span> <span class="n">fmt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr</span> <span class="o">=</span> <span class="n">attr</span>
+
+    <span class="k">def</span> <span class="nf">generate_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">rng</span> <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="p">))</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">rng</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">column</span> <span class="o">=</span> <span class="n">SpinAttrColumn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+            <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">columns</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">found</span><span class="p">)</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_columns</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">columns</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">spins</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">peaklist</span><span class="p">)):</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">spin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">spins</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">possible_names</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                    <span class="n">warn</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Warning: some values None in column </span><span class="si">{}</span><span class="s1">, &#39;</span>
+                            <span class="s1">&#39;excluding it&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">warn</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_columns</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">columns</span></div>
+
+
+<div class="viewcode-block" id="PipeNameGroup"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PipeNameGroup">[docs]</a><span class="k">class</span> <span class="nc">PipeNameGroup</span><span class="p">(</span><span class="n">ColumnGroup</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name_perms</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">perm</span><span class="p">)</span> <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">(</span><span class="s1">&#39;XYZA&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]</span>
+    <span class="n">prefixes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">,</span> <span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">name_perms</span>
+    <span class="n">possible_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;_NAME&#39;</span> <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">prefixes</span><span class="p">)</span>
+    <span class="n">index_perms</span> <span class="o">=</span> <span class="p">[</span><span class="n">perm</span> <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">2</span><span class="p">)]</span>
+    <span class="n">dim_permutations</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">index_perms</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">name_perms</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">,</span> <span class="n">index_perms</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PipeNameGroup</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">generate_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim_perms</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">dim_perms</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+                <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PipeAnchorColumn</span><span class="p">(</span><span class="n">elem</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PipeNameColumn</span><span class="p">(</span><span class="n">elem</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">columns</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+        <span class="n">possible_names</span> <span class="o">=</span> <span class="n">PipeNameGroup</span><span class="o">.</span><span class="n">possible_names</span>
+        <span class="n">dim_permutations</span> <span class="o">=</span> <span class="n">PipeNameGroup</span><span class="o">.</span><span class="n">dim_permutations</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">possible_names</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">possible_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">found</span><span class="p">)</span>
+        <span class="n">dim_perms</span> <span class="o">=</span> <span class="p">[</span><span class="n">dim_permutations</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_columns</span><span class="p">(</span><span class="n">dim_perms</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">columns</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">anchors</span> <span class="o">=</span> <span class="n">peaklist</span><span class="o">.</span><span class="n">anchors</span>
+        <span class="n">anchored_dims</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">tupl</span> <span class="ow">in</span> <span class="n">anchors</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tupl</span><span class="p">)</span>
+        <span class="n">unanchored_dims</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">peaklist</span><span class="o">.</span><span class="n">dims</span><span class="p">))</span> <span class="o">-</span> <span class="n">anchored_dims</span>
+        <span class="n">dim_perms</span> <span class="o">=</span> <span class="n">anchors</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unanchored_dims</span><span class="p">))</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_columns</span><span class="p">(</span><span class="n">dim_perms</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">columns</span></div>
+
+
+<div class="viewcode-block" id="ColumnTemplate"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.ColumnTemplate">[docs]</a><span class="k">class</span> <span class="nc">ColumnTemplate</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">columns</span> <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+<div class="viewcode-block" id="ColumnTemplate.insert"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.ColumnTemplate.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">rpr</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+        <span class="k">return</span> <span class="n">rpr</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;  &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">]</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;([</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;,</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;])&#39;</span>
+        <span class="k">return</span> <span class="n">string</span>
+
+    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">formats</span><span class="p">,</span> <span class="n">add_unknown</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">column_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">Column</span><span class="p">):</span>
+                <span class="n">column_map</span><span class="p">[</span><span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">ColumnGroup</span><span class="p">):</span>
+                <span class="n">columns</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">resolve_from_names</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+                <span class="n">column_map</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">column</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">})</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">fmt</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">formats</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
+                <span class="n">column</span> <span class="o">=</span> <span class="n">column_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">column</span><span class="o">.</span><span class="n">fmt</span> <span class="o">=</span> <span class="n">fmt</span>
+                <span class="n">resolved</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">add_unknown</span><span class="p">:</span>
+                <span class="n">column</span> <span class="o">=</span> <span class="n">PeakAttrColumn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="n">resolved</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">resolved</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resolved</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">Column</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">column</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">pk</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">pk</span> <span class="ow">in</span> <span class="n">peaklist</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">):</span>
+                        <span class="n">warn</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Warning: some values None in column </span><span class="si">{}</span><span class="s1">, &#39;</span>
+                                <span class="s1">&#39;excluding it&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">warn</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">stderr</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">resolved</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">column</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">ColumnGroup</span><span class="p">):</span>
+                <span class="n">columns</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">resolve_from_peaklist</span><span class="p">(</span><span class="n">peaklist</span><span class="p">)</span>
+                <span class="n">resolved</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">update_from_peaklist</span><span class="p">(</span><span class="n">peaklist</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">resolved</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">resolved</span></div>
+
+
+<div class="viewcode-block" id="PipeTemplate"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.PipeTemplate">[docs]</a><span class="k">class</span> <span class="nc">PipeTemplate</span><span class="p">(</span><span class="n">ColumnTemplate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ppm_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_PPM&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="s1">&#39;XYZA&#39;</span><span class="p">]</span>
+            <span class="n">id_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_ID&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="s1">&#39;XYZA&#39;</span><span class="p">]</span>
+            <span class="n">hz_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_Hz&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="s1">&#39;XYZA&#39;</span><span class="p">]</span>
+            <span class="n">axis_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_AXIS&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="s1">&#39;XYZA&#39;</span><span class="p">]</span>
+            <span class="n">one_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">1&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="s1">&#39;XYZA&#39;</span><span class="p">]</span>
+            <span class="n">three_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">3&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="s1">&#39;XYZA&#39;</span><span class="p">]</span>
+            <span class="n">columns</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">PeakAttrColumn</span><span class="p">(</span><span class="s1">&#39;INDEX&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;number&#39;</span><span class="p">),</span>
+                <span class="n">PipeNameGroup</span><span class="p">(),</span>
+                <span class="n">PeakAttrColumn</span><span class="p">(</span><span class="s1">&#39;CLUSTID&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;cluster_id&#39;</span><span class="p">),</span>
+                <span class="n">PeakAttrColumn</span><span class="p">(</span><span class="s1">&#39;MEMCNT&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%2d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;cluster_size&#39;</span><span class="p">),</span>
+                <span class="n">SpinAttrGroup</span><span class="p">(</span><span class="n">ppm_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%7.3f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;shift&#39;</span><span class="p">),</span>
+                <span class="n">SpinAttrGroup</span><span class="p">(</span><span class="n">id_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;spin_id&#39;</span><span class="p">),</span>
+                <span class="n">SpinAttrGroup</span><span class="p">(</span><span class="n">hz_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%7.1f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;shift_hz&#39;</span><span class="p">),</span>
+                <span class="n">SpinAttrGroup</span><span class="p">(</span><span class="n">axis_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%6.1f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;shift_pts&#39;</span><span class="p">),</span>
+                <span class="n">SpinAttrGroup</span><span class="p">(</span><span class="n">one_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;_1&#39;</span><span class="p">),</span>
+                <span class="n">SpinAttrGroup</span><span class="p">(</span><span class="n">three_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;_3&#39;</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PipeTemplate</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">insert_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">):</span>
+        <span class="n">pipe_name_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">PipeNameColumn</span><span class="p">)]</span>
+        <span class="n">pipe_anchor_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                           <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">PipeAnchorColumn</span><span class="p">)]</span>
+        <span class="n">pipe_group_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">PipeNameGroup</span><span class="p">)]</span>
+        <span class="n">peak_number_idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                           <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">PeakAttrColumn</span><span class="p">)</span>
+                           <span class="ow">and</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;INDEX&#39;</span><span class="p">]</span>
+        <span class="n">name_indices</span> <span class="o">=</span> <span class="n">pipe_name_idx</span> <span class="o">+</span> <span class="n">pipe_anchor_idx</span> <span class="o">+</span> <span class="n">pipe_group_idx</span>
+        <span class="k">if</span> <span class="n">name_indices</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">name_indices</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">peak_number_idx</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">peak_number_idx</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="p">[</span><span class="n">index</span><span class="p">:</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">columns</span></div>
+
+
+<div class="viewcode-block" id="SparkyTemplate"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.SparkyTemplate">[docs]</a><span class="k">class</span> <span class="nc">SparkyTemplate</span><span class="p">(</span><span class="n">ColumnTemplate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">DEFAULT_FMTS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Assignment&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">%10s</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;w1&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">%7.3f</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;w2&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">%7.3f</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;w3&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">%7.3f</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;w4&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">%7.3f</span><span class="s1">&#39;</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ppm_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;w</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">)]</span>
+            <span class="n">columns</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">SparkyNameColumn</span><span class="p">(),</span>
+                <span class="n">SpinAttrGroup</span><span class="p">(</span><span class="n">ppm_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%7.3f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;shift&#39;</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SparkyTemplate</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_formats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_names</span><span class="p">):</span>
+        <span class="n">formats</span> <span class="o">=</span> <span class="n">SparkyTemplate</span><span class="o">.</span><span class="n">DEFAULT_FMTS</span>
+        <span class="n">column_formats</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">formats</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">column_names</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">column_formats</span></div>
+
+
+<div class="viewcode-block" id="UplTemplate"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.UplTemplate">[docs]</a><span class="k">class</span> <span class="nc">UplTemplate</span><span class="p">(</span><span class="n">ColumnTemplate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">columns</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">SpinAttrColumn</span><span class="p">(</span><span class="s1">&#39;X_res_num&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;res_num&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">Res3LetterColumn</span><span class="p">(</span><span class="s1">&#39;X_res_type&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">SpinAttrColumn</span><span class="p">(</span><span class="s1">&#39;X_atom&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%-4s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;atom&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">SpinAttrColumn</span><span class="p">(</span><span class="s1">&#39;Y_res_num&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;res_num&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">Res3LetterColumn</span><span class="p">(</span><span class="s1">&#39;Y_res_type&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">SpinAttrColumn</span><span class="p">(</span><span class="s1">&#39;Y_atom&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%-4s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;atom&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">PeakAttrColumn</span><span class="p">(</span><span class="s1">&#39;Distance&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%5.2f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;distance&#39;</span><span class="p">),</span>
+                <span class="n">IgnoreColumn</span><span class="p">(</span><span class="s1">&#39;#peak&#39;</span><span class="p">,</span> <span class="s1">&#39;     #peak&#39;</span><span class="p">),</span>
+                <span class="n">PeakAttrColumn</span><span class="p">(</span><span class="s1">&#39;Index&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%5d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;number&#39;</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UplTemplate</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="XeasyTemplate"><a class="viewcode-back" href="../../modules/columns.html#nmrpeaklists.columns.XeasyTemplate">[docs]</a><span class="k">class</span> <span class="nc">XeasyTemplate</span><span class="p">(</span><span class="n">ColumnTemplate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_ppm_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_PPM&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="s1">&#39;XYZA&#39;</span><span class="p">]</span>
+    <span class="n">_id_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_ID&#39;</span> <span class="o">%</span> <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="s1">&#39;XYZA&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">columns</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">PeakAttrColumn</span><span class="p">(</span><span class="s1">&#39;Index&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;number&#39;</span><span class="p">),</span>
+                <span class="n">SpinAttrGroup</span><span class="p">(</span><span class="n">XeasyTemplate</span><span class="o">.</span><span class="n">_ppm_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%7.3f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;shift&#39;</span><span class="p">),</span>
+                <span class="n">IgnoreColumn</span><span class="p">(</span><span class="s1">&#39;Ignore0&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">),</span>
+                <span class="n">IgnoreColumn</span><span class="p">(</span><span class="s1">&#39;Ignore1&#39;</span><span class="p">,</span> <span class="s1">&#39;U        &#39;</span><span class="p">),</span>
+                <span class="n">PeakAttrColumn</span><span class="p">(</span><span class="s1">&#39;Volume&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%10.3e</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;volume&#39;</span><span class="p">),</span>
+                <span class="n">IgnoreColumn</span><span class="p">(</span><span class="s1">&#39;Ignore2&#39;</span><span class="p">,</span> <span class="s1">&#39; 0.00e+00&#39;</span><span class="p">),</span>
+                <span class="n">IgnoreColumn</span><span class="p">(</span><span class="s1">&#39;Ignore3&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">),</span>
+                <span class="n">IgnoreColumn</span><span class="p">(</span><span class="s1">&#39;Ignore4&#39;</span><span class="p">,</span> <span class="s1">&#39;  0&#39;</span><span class="p">),</span>
+                <span class="n">SpinAttrGroup</span><span class="p">(</span><span class="n">XeasyTemplate</span><span class="o">.</span><span class="n">_id_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;spin_id&#39;</span><span class="p">),</span>
+                <span class="n">IgnoreColumn</span><span class="p">(</span><span class="s1">&#39;Ignore5&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">XeasyTemplate</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_names_formats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_dims</span><span class="p">):</span>
+        <span class="n">column_names</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span><span class="s1">&#39;Index&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">XeasyTemplate</span><span class="o">.</span><span class="n">_ppm_names</span><span class="p">[:</span><span class="n">num_dims</span><span class="p">]</span> <span class="o">+</span>
+            <span class="p">[</span><span class="s1">&#39;Ignore0&#39;</span><span class="p">,</span> <span class="s1">&#39;Ignore1&#39;</span><span class="p">,</span> <span class="s1">&#39;Volume&#39;</span><span class="p">,</span> <span class="s1">&#39;Ignore2&#39;</span><span class="p">,</span> <span class="s1">&#39;Ignore3&#39;</span><span class="p">,</span> <span class="s1">&#39;Ignore4&#39;</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">XeasyTemplate</span><span class="o">.</span><span class="n">_id_names</span><span class="p">[:</span><span class="n">num_dims</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;Ignore5&#39;</span><span class="p">])</span>
+        <span class="n">column_formats</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span><span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%7.3f</span><span class="s1">&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">num_dims</span> <span class="o">+</span>
+            <span class="p">[</span><span class="s1">&#39;</span><span class="si">%1s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%9s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%10.3e</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%9s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%1s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%3s</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">+</span>
+            <span class="p">[</span><span class="s1">&#39;</span><span class="si">%4d</span><span class="s1">&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">num_dims</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%1s</span><span class="s1">&#39;</span><span class="p">])</span>
+        <span class="n">column_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">column_names</span><span class="p">)</span>
+        <span class="n">column_formats</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">column_formats</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">column_names</span><span class="p">,</span> <span class="n">column_formats</span>
+
+    <span class="k">def</span> <span class="nf">resolve_from_peaklist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaklist</span><span class="p">):</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">XeasyTemplate</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">resolve_from_peaklist</span><span class="p">(</span><span class="n">peaklist</span><span class="p">)</span>
+        <span class="n">col_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">column</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">resolved</span><span class="p">]</span>
+        <span class="n">ppm_cols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">XeasyTemplate</span><span class="o">.</span><span class="n">_ppm_names</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">col_names</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ppm_cols</span><span class="p">:</span>
+            <span class="n">warn</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;XeasyTemplate: Peak list missing chemical shifts. &#39;</span>
+                    <span class="s1">&#39;Beware of invalid files&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">warn</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">id_cols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">XeasyTemplate</span><span class="o">.</span><span class="n">_id_names</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">col_names</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">id_cols</span><span class="p">:</span>
+            <span class="n">warn</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;XeasyTemplate: Peak list missing spin IDs. &#39;</span>
+                    <span class="s1">&#39;Beware of invalid files&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">warn</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;Volume&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">col_names</span><span class="p">:</span>
+            <span class="n">warn</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;XeasyTemplate: Peak list missing volumes. &#39;</span>
+                    <span class="s1">&#39;Beware of invalid files&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">warn</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resolved</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+    <a id="sidebar-anchor"></a>
+    
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+      </ul>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Bradley Harden.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>nmrpeaklists.peaklist &#8212; nmrpeaklists 0.9 documentation</title>
+    <link rel="stylesheet" href="../../_static/pydoctheme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <link rel="shortcut icon" type="image/png" href="../../_static/favicon.png" />
+    <meta name="viewport" content="width=device-width,initial-scale=0.8">
+    
+    
+
+  </head><body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="responsive-menu"><a href="#sidebar-anchor" title="Navigation">&#9776;</a></li>
+        <li><a href="../../index.html">nmrpeaklists 0.9 documentation</a> &#187;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nmrpeaklists.peaklist</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Classes</span>
+<span class="sd">-------</span>
+
+<span class="sd">:class:`Assignment` objects encapsulate the three elements of an NMR</span>
+<span class="sd">assignment: residue type, residue number and atom name.</span>
+
+<span class="sd">:class:`Spin` objects encapsulate all properties of a single NMR spin</span>
+<span class="sd">resonance in a peak list</span>
+
+<span class="sd">:class:`Peak` objects represent a line in a peak list. They act as lists</span>
+<span class="sd">of Spin objects and contain additional peak-specific attributes.</span>
+
+<span class="sd">:class:`PeakList` objects represent a peak list. They act as lists of Peak</span>
+<span class="sd">objects and contain attributes associated with the entire list.</span>
+
+<span class="sd">Documentation</span>
+<span class="sd">-------------</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">izip</span> <span class="k">as</span> <span class="nb">zip</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">combinations</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">MutableSequence</span><span class="p">,</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="p">(</span><span class="n">RES_NAME_PATTERN</span><span class="p">,</span> <span class="n">ATOM_NAME_PATTERN</span><span class="p">,</span> <span class="n">NAME_PATTERN</span><span class="p">,</span>
+                    <span class="n">SPARKY_NAME_PATTERN</span><span class="p">,</span> <span class="n">SPARKY_ATOM_NAME_PATTERN</span><span class="p">,</span> <span class="n">argsort</span><span class="p">)</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Assignment&#39;</span><span class="p">,</span> <span class="s1">&#39;Spin&#39;</span><span class="p">,</span> <span class="s1">&#39;Peak&#39;</span><span class="p">,</span> <span class="s1">&#39;PeakList&#39;</span><span class="p">,</span> <span class="s1">&#39;calibrate_peaklist&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;get_empty_peaklist&#39;</span><span class="p">,</span> <span class="s1">&#39;get_spin_link_dict&#39;</span><span class="p">,</span> <span class="s1">&#39;renumber_peaklist&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;reorder_dims&#39;</span><span class="p">,</span> <span class="s1">&#39;sort_by_assignments&#39;</span><span class="p">]</span>
+
+
+<span class="n">Assignment</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Assignment&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;res_type&#39;</span><span class="p">,</span> <span class="s1">&#39;res_num&#39;</span><span class="p">,</span> <span class="s1">&#39;atom&#39;</span><span class="p">))</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="Spin"><a class="viewcode-back" href="../../modules/peaklist.html#nmrpeaklists.peaklist.Spin">[docs]</a><span class="k">class</span> <span class="nc">Spin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Encapsulate all properties of an NMR spin.</span>
+
+<span class="sd">    Record the chemical shift and assignment information for an NMR spin.</span>
+<span class="sd">    Spins are hashable, and the hash is based on a tuple of the spin&#39;s</span>
+<span class="sd">    residue type, residue number, and atom name. Two spins are considered</span>
+<span class="sd">    equal if they share the same value for all three assignment attributes.</span>
+<span class="sd">    Spins may also be compared to each other for sorting purposes. A spin is</span>
+<span class="sd">    considered &quot;less than&quot; another spin, if the former is assigned and the</span>
+<span class="sd">    latter is an unassigned spin system. Furthermore, assigned spins are</span>
+<span class="sd">    compared to each other first by residue number, then by backbone or</span>
+<span class="sd">    sidechain position, and finally by atom number.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    res_type : string, optional</span>
+<span class="sd">        Single letter code for residue type. Use ``&#39;+&#39;`` for unassigned</span>
+<span class="sd">        spin systems.</span>
+<span class="sd">    res_num : int or string, optional</span>
+<span class="sd">        Residue number</span>
+<span class="sd">    atom : string, optional</span>
+<span class="sd">        Atom name</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; spin = Spin(shift=3.41, spin_id=1012, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="sd">                    atom=&#39;HB3&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; print(spin)</span>
+<span class="sd">    Spin(shift=3.41, shfit_pts=None, id=1012, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="sd">    atom=&#39;HB3&#39;)</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    Peak, PeakList</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">SIDECHAIN_MAP</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="s1">&#39;NABGDEZH&#39;</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">res_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">res_num</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">res_type</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">res_type</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">res_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">res_num</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">res_num</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">res_num</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atom</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">atom</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">rprs</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="s1">&#39;=&#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="k">return</span> <span class="s1">&#39;Spin(&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rprs</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">strs</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="s1">&#39;=&#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s1">&#39;Spin(&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">strs</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__nonzero__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">vrs</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vrs</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">assignment</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="nf">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="c1"># Shorthand</span>
+        <span class="n">srt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_type</span>
+        <span class="n">srn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_num</span>
+        <span class="n">sat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom</span>
+        <span class="n">ort</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">res_type</span>
+        <span class="n">orn</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">res_num</span>
+        <span class="n">oat</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">atom</span>
+        <span class="c1"># Replace letters with &#39; &#39; to sort before unassigned &#39;+&#39;</span>
+        <span class="n">srt</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">srt</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\w&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_type</span><span class="p">)</span>
+        <span class="n">ort</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">ort</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\w&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">res_type</span><span class="p">)</span>
+        <span class="c1"># Map 2nd letter of atom to side chain position 1-7. &#39;N&#39; to 0 for HN.</span>
+        <span class="c1"># For single letter backbone atoms, use `get` default to map &#39;&#39; to 0</span>
+        <span class="n">ssc</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">sat</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">Spin</span><span class="o">.</span><span class="n">SIDECHAIN_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sat</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">osc</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">oat</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">Spin</span><span class="o">.</span><span class="n">SIDECHAIN_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">oat</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># Always sort None last. True sorts after False</span>
+        <span class="n">slf</span> <span class="o">=</span> <span class="p">((</span><span class="n">srt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">srt</span><span class="p">),</span> <span class="p">(</span><span class="n">srn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">srn</span><span class="p">),</span>
+               <span class="p">(</span><span class="n">ssc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ssc</span><span class="p">),</span> <span class="p">(</span><span class="n">sat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sat</span><span class="p">))</span>
+        <span class="n">oth</span> <span class="o">=</span> <span class="p">((</span><span class="n">ort</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ort</span><span class="p">),</span> <span class="p">(</span><span class="n">orn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">orn</span><span class="p">),</span>
+               <span class="p">(</span><span class="n">osc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">osc</span><span class="p">),</span> <span class="p">(</span><span class="n">oat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">oat</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">slf</span> <span class="o">&lt;</span> <span class="n">oth</span>
+
+    <span class="k">def</span> <span class="nf">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="n">other</span> <span class="o">&lt;</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">other</span> <span class="o">&lt;</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">&lt;</span> <span class="n">other</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">assignment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Assignment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">res_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">res_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">rest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_type</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;?&#39;</span>
+        <span class="n">resn</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">res_num</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_num</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;?&#39;</span>
+        <span class="k">return</span> <span class="n">rest</span> <span class="o">+</span> <span class="n">resn</span>
+
+    <span class="nd">@res_name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">res_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">res_type</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">res_num</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">RES_NAME_PATTERN</span><span class="p">,</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;invalid res_name: </span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="n">res_type</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">res_num</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">res_type</span> <span class="o">=</span> <span class="n">res_type</span> <span class="k">if</span> <span class="n">res_type</span> <span class="o">!=</span> <span class="s1">&#39;?&#39;</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">res_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">res_num</span><span class="p">)</span> <span class="k">if</span> <span class="n">res_num</span> <span class="o">!=</span> <span class="s1">&#39;?&#39;</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">atom_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;?&#39;</span>
+
+    <span class="nd">@atom_name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">atom_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atom</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">ATOM_NAME_PATTERN</span><span class="p">,</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;invalid atom_name: </span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atom</span> <span class="o">=</span> <span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="s1">&#39;?&#39;</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_name</span><span class="p">)</span>
+
+    <span class="nd">@name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">NAME_PATTERN</span><span class="p">,</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;invalid name: </span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Peak"><a class="viewcode-back" href="../../modules/peaklist.html#nmrpeaklists.peaklist.Peak">[docs]</a><span class="k">class</span> <span class="nc">Peak</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A list of Spin objects and an associated set of parameters.</span>
+
+<span class="sd">    Peak objects encapsulate each line of an NMR peak list. Peak specific</span>
+<span class="sd">    parameters should be added as attributes. Arbitrary attributes may be</span>
+<span class="sd">    added to a Peak with the standard attribute syntax or as keyword</span>
+<span class="sd">    arguments upon initialization.</span>
+
+<span class="sd">    Peaks are hashable, and the hash is based on a frozen set of the peak&#39;s</span>
+<span class="sd">    constituent spins. Two peaks are considered equal if their sets of</span>
+<span class="sd">    spins are equal. Note that this only depends on the assignments of the</span>
+<span class="sd">    spins, not on the spin&#39;s attributes nor the peak&#39;s attributes.</span>
+
+<span class="sd">    .. warning:: Peak objects are hashable but still mutable.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    spins : :obj:`list` of :obj:`Spin`, optional</span>
+<span class="sd">        Spins comprising the peak</span>
+<span class="sd">    index : int or string, optional</span>
+<span class="sd">        Peak index</span>
+<span class="sd">    commented : bool, default False</span>
+<span class="sd">        Whether the peak should be commented in the peak list</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; spin0 = Spin(shift=3.41, spin_id=1012, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="sd">                    atom=&#39;HB3&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; spin1 = Spin(shift=40.24, spin_id=1013, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="sd">                    atom=&#39;CB&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; spin2 = Spin(shift=4.632, spin_id=973, res_type=&#39;L&#39;, res_num=56,</span>
+<span class="sd">                    atom=&#39;HA&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; peak = Peak(spins=[spin0, spin1, spin2], index=134, volume=5.432e5)</span>
+<span class="sd">    &gt;&gt;&gt; print(peak)</span>
+<span class="sd">    Peak(volume=543200.0, index=134, commented=False, spins=</span>
+<span class="sd">    [Spin(shift=3.41, shfit_pts=None, id=1012, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="sd">    atom=&#39;HB3&#39;),</span>
+<span class="sd">    Spin(shift=40.24, shfit_pts=None, id=1013, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="sd">    atom=&#39;CB&#39;),</span>
+<span class="sd">    Spin(shift=4.63, shfit_pts=None, id=973, res_type=&#39;L&#39;, res_num=56,</span>
+<span class="sd">    atom=&#39;HA&#39;)])</span>
+<span class="sd">    &gt;&gt;&gt; peak.height = 1.852e3</span>
+<span class="sd">    &gt;&gt;&gt; print(peak)</span>
+<span class="sd">    Peak(volume=543200.0, index=134, commented=False, height=1852.0, spins=</span>
+<span class="sd">    [Spin(shift=3.41, shfit_pts=None, id=1012, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="sd">    atom=&#39;HB3&#39;),</span>
+<span class="sd">    Spin(shift=40.24, shfit_pts=None, id=1013, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="sd">    atom=&#39;CB&#39;),</span>
+<span class="sd">    Spin(shift=4.63, shfit_pts=None, id=973, res_type=&#39;L&#39;, res_num=56,</span>
+<span class="sd">    atom=&#39;HA&#39;)])</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    Spin, PeakList</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spins</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spins</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">spins</span> <span class="k">if</span> <span class="n">spins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spins</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+<div class="viewcode-block" id="Peak.insert"><a class="viewcode-back" href="../../modules/peaklist.html#nmrpeaklists.peaklist.Peak.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spins</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="s1">&#39;=&#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s1">&#39;_spins&#39;</span><span class="p">]</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;Peak(&#39;</span> <span class="o">+</span> <span class="n">attr</span> <span class="o">+</span> <span class="s1">&#39;spins=&#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spins</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="s1">&#39;=&#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s1">&#39;_spins&#39;</span> <span class="ow">and</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="n">spins</span> <span class="o">=</span> <span class="s1">&#39;,</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;  &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">spin</span><span class="p">)</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;Peak(&#39;</span> <span class="o">+</span> <span class="n">attr</span> <span class="o">+</span> <span class="s1">&#39;spins=[</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">spins</span> <span class="o">+</span> <span class="s1">&#39;])&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__nonzero__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">empty</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;_spins&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">empty</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">empty</span> <span class="k">else</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">assignment</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span> <span class="o">==</span>
+                <span class="nb">set</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">assignment</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="nf">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">spin</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">spin</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="n">other</span> <span class="o">&lt;</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">other</span> <span class="o">&lt;</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">&lt;</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spins</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sparky_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">prev_res_name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="k">if</span> <span class="n">spin</span><span class="o">.</span><span class="n">res_name</span> <span class="o">!=</span> <span class="n">prev_res_name</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">+=</span> <span class="n">spin</span><span class="o">.</span><span class="n">res_name</span>
+            <span class="n">name</span> <span class="o">+=</span> <span class="n">spin</span><span class="o">.</span><span class="n">atom_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">)</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">prev_res_name</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">res_name</span>
+        <span class="n">sparky_name</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sparky_name</span>
+
+    <span class="nd">@sparky_name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">sparky_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">prev_res_name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">spin</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="bp">self</span><span class="p">):</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">SPARKY_NAME_PATTERN</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">prev_res_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;invalid sparky name: </span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+                <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">SPARKY_ATOM_NAME_PATTERN</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;invalid sparky name: </span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">spin</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">prev_res_name</span>
+                    <span class="n">atom_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;+&#39;</span><span class="p">)</span>
+                    <span class="n">spin</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">=</span> <span class="n">atom_name</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">spin</span><span class="o">.</span><span class="n">res_name</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">atom_name</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;+&#39;</span><span class="p">)</span>
+                <span class="n">spin</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">=</span> <span class="n">atom_name</span>
+                <span class="n">prev_res_name</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">res_name</span>
+
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">get_string</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="PeakList"><a class="viewcode-back" href="../../modules/peaklist.html#nmrpeaklists.peaklist.PeakList">[docs]</a><span class="k">class</span> <span class="nc">PeakList</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A list of Peak objects and parameters associated with entire peak lists.</span>
+
+<span class="sd">    PeakLists are hashable, and the hash is based on a frozen set of the</span>
+<span class="sd">    constituent peaks. Two peak lists are considered equal if their sets of</span>
+<span class="sd">    peaks are equal. Note that this only depends on the assignments of the</span>
+<span class="sd">    spins in each peak, not on any other spin, peak or peak list attributes.</span>
+
+<span class="sd">    .. warning:: PeakList objects are hashable but still mutable.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    peaks : list of Peak objects, optional</span>
+<span class="sd">        Each peak must have the same number of spins. The dimensionality</span>
+<span class="sd">        of the peak list is given with self.dims</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If attempting to insert a peak with a different number of spins than</span>
+<span class="sd">        those currently populating the peak list.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; peaklist = PeakList(anchors=[(0,1)],</span>
+<span class="sd">                            tab_fmt=[(&#39;height&#39;, &#39;HEIGHT&#39;, &#39;%11.4e&#39;),</span>
+<span class="sd">                                     (&#39;width&#39;, &#39;%sW&#39;, &#39;%5.2f&#39;),</span>
+<span class="sd">                                     (&#39;CEST_profile&#39;, &#39;Z_A%d&#39;, &#39;%6.4f&#39;)])</span>
+<span class="sd">    &gt;&gt;&gt; peak = peaklist[0]</span>
+<span class="sd">    &gt;&gt;&gt; peak.height</span>
+<span class="sd">    53472000.0</span>
+<span class="sd">    &gt;&gt;&gt; peak.CEST_profile</span>
+<span class="sd">    [0.3017, 0.3022, 0.3021, ...]</span>
+<span class="sd">    &gt;&gt;&gt; spin = peak[0]</span>
+<span class="sd">    &gt;&gt;&gt; spin.width</span>
+<span class="sd">    2.07</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    Spin, Peak</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_peaks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">peaks</span> <span class="k">if</span> <span class="n">peaks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_peaks</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_peaks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_peaks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">def</span> <span class="nf">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_peaks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PeakList.insert"><a class="viewcode-back" href="../../modules/peaklist.html#nmrpeaklists.peaklist.PeakList.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_peaks</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;PeakList(&#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_peaks</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">peaks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;  &#39;</span> <span class="o">+</span> <span class="n">line</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span>
+            <span class="n">peaks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">))</span>
+        <span class="n">peaks</span> <span class="o">=</span> <span class="s1">&#39;,</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">peaks</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;PeakList([</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">peaks</span> <span class="o">+</span> <span class="s1">&#39;])&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__nonzero__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">empty</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;_peaks&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">empty</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">empty</span> <span class="k">else</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">frozenset</span><span class="p">(</span><span class="n">spn</span><span class="o">.</span><span class="n">assignment</span> <span class="k">for</span> <span class="n">spn</span> <span class="ow">in</span> <span class="n">pk</span><span class="p">)</span> <span class="k">for</span> <span class="n">pk</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span> <span class="o">==</span>
+                <span class="nb">set</span><span class="p">(</span><span class="nb">frozenset</span><span class="p">(</span><span class="n">spn</span><span class="o">.</span><span class="n">assignment</span> <span class="k">for</span> <span class="n">spn</span> <span class="ow">in</span> <span class="n">pk</span><span class="p">)</span> <span class="k">for</span> <span class="n">pk</span> <span class="ow">in</span> <span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_peaks</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dims</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">set_of_peak_lengths</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span> <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">num_lens</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">set_of_peak_lengths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_lens</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">num_lens</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;peaklist is empty&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;peaks in peaklist have different lengths&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">anchors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Detect which spins in each peak make up spin anchors.&quot;&quot;&quot;</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span>
+        <span class="n">anchors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">possible_anchors</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">combination</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">dims</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="n">spins</span> <span class="o">=</span> <span class="p">[</span><span class="n">peak</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">combination</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">res_num</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">s</span><span class="o">.</span><span class="n">atom</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">spins</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">res_nums</span> <span class="o">=</span> <span class="p">[</span><span class="n">spin</span><span class="o">.</span><span class="n">res_num</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">spins</span><span class="p">]</span>
+                <span class="n">atoms</span> <span class="o">=</span> <span class="p">[</span><span class="n">spin</span><span class="o">.</span><span class="n">atom</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">spins</span><span class="p">]</span>
+                <span class="n">elements</span> <span class="o">=</span> <span class="p">[</span><span class="n">atom</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">]</span>
+                <span class="n">positions</span> <span class="o">=</span> <span class="p">[</span><span class="n">atom</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">]</span>
+                <span class="n">same_res_num</span> <span class="o">=</span> <span class="n">res_nums</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">res_nums</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">valid_pairs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">((</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">)),</span> <span class="nb">set</span><span class="p">((</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">))]</span>
+                <span class="n">is_proton_heavy_pair</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">elements</span><span class="p">)</span> <span class="ow">in</span> <span class="n">valid_pairs</span>
+                <span class="n">same_position</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">positions</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">same_res_num</span> <span class="ow">and</span> <span class="n">is_proton_heavy_pair</span> <span class="ow">and</span> <span class="n">same_position</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s1">&#39;&#39;</span> <span class="ow">in</span> <span class="n">positions</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">elements</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">((</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">)):</span>
+                        <span class="c1"># One of the atom names must have been &#39;H&#39;, &#39;N&#39; or &#39;C&#39;</span>
+                        <span class="c1"># Of these, only the amide proton anchor is valid</span>
+                        <span class="k">continue</span>
+                    <span class="k">if</span> <span class="n">elements</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;H&#39;</span><span class="p">:</span>
+                        <span class="n">possible_anchors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">combination</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">possible_anchors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">combination</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">possible_anchors</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">pa_sets</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">pa</span><span class="p">)</span> <span class="k">for</span> <span class="n">pa</span> <span class="ow">in</span> <span class="n">possible_anchors</span><span class="p">]</span>
+                <span class="n">overlap</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="o">*</span><span class="n">pa_sets</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">overlap</span><span class="p">:</span>
+                    <span class="c1"># Ambiguous, overlapping anchors</span>
+                    <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">poss_anc</span> <span class="ow">in</span> <span class="n">possible_anchors</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">poss_anc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">anchors</span><span class="p">:</span>
+                    <span class="n">anchors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">poss_anc</span><span class="p">)</span>
+        <span class="n">anchors</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">anchors</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">anchors</span></div>
+
+
+<div class="viewcode-block" id="calibrate_peaklist"><a class="viewcode-back" href="../../modules/peaklist.html#nmrpeaklists.peaklist.calibrate_peaklist">[docs]</a><span class="k">def</span> <span class="nf">calibrate_peaklist</span><span class="p">(</span><span class="n">peaklist</span><span class="p">,</span> <span class="n">calibration</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="s1">&#39;shift&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calibrate the chemical shifts of each spin in the peak list.</span>
+
+<span class="sd">    #TODO:</span>
+
+<span class="sd">    For each spin in the peak list, subtract the corresponding calibration</span>
+<span class="sd">    value from its spin.shift attribute.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    calibration : list of floats</span>
+<span class="sd">        List of calibrations for each dimension of the peak list, in PPM.</span>
+<span class="sd">        The order of the calibration values should match the order of the</span>
+<span class="sd">        spins in each peak.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        When the calibration list length doesn&#39;t match the number of pins</span>
+<span class="sd">        in the peak.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; peaklist = PeakList(peaks=peaks, dims=3)</span>
+<span class="sd">    &gt;&gt;&gt; peaklist.calibrate([0.053, 0.102, -0.018])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">calibration</span><span class="p">)</span> <span class="o">!=</span> <span class="n">peaklist</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;incorrect calibration list length&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="n">peaklist</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">spin</span><span class="p">,</span> <span class="n">cal</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">peak</span><span class="p">,</span> <span class="n">calibration</span><span class="p">):</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">spin</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="n">shift</span> <span class="o">-=</span> <span class="n">cal</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">spin</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">shift</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">peaklist</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_empty_peaklist</span><span class="p">(</span><span class="n">num_peaks</span><span class="p">,</span> <span class="n">num_dims</span><span class="p">):</span>
+    <span class="n">peaklist</span> <span class="o">=</span> <span class="n">PeakList</span><span class="p">()</span>
+    <span class="n">peaklist</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">Peak</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_peaks</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="n">peaklist</span><span class="p">:</span>
+        <span class="n">peak</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">Spin</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_dims</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">peaklist</span>
+
+
+<div class="viewcode-block" id="get_spin_link_dict"><a class="viewcode-back" href="../../modules/peaklist.html#nmrpeaklists.peaklist.get_spin_link_dict">[docs]</a><span class="k">def</span> <span class="nf">get_spin_link_dict</span><span class="p">(</span><span class="n">peaklist</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Map each unique spin link to all of its corresponding peaks.</span>
+
+<span class="sd">    NOESY peak lists represent spin links between Hydrogen atoms. Whether</span>
+<span class="sd">    2D, 3D or 4D, each peak in a NOESY peak list has exactly two Hydrogen</span>
+<span class="sd">    spins. Here, a spin link is represented by a frozenset containing the</span>
+<span class="sd">    spin.assignment tuples for each Hydrogen atom. This function returns a</span>
+<span class="sd">    dictionary mapping each unique spin link to a list of the Peaks in the</span>
+<span class="sd">    PeakList that contain those two Hydrogen atoms.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; spin_link_dict = peaklist.spin_link_dict()</span>
+<span class="sd">    &gt;&gt;&gt; spin_link, peaks = spin_link_dict.popitem()</span>
+<span class="sd">    &gt;&gt;&gt; spin_link</span>
+<span class="sd">    frozenset([Assignment(res_type=&#39;Q&#39;, res_num=21, atom=&#39;HN&#39;), Assignment(</span>
+<span class="sd">    res_type=&#39;G&#39;, res_num=17, atom=&#39;HN&#39;)])</span>
+<span class="sd">    &gt;&gt;&gt; print(peaks[0])</span>
+<span class="sd">        Peak(spins=[</span>
+<span class="sd">        Spin(res_type=G, res_num=17, atom=HN),</span>
+<span class="sd">        Spin(res_type=G, res_num=17, atom=N),</span>
+<span class="sd">        Spin(res_type=Q, res_num=21, atom=HN)])</span>
+<span class="sd">    &gt;&gt;&gt; print(peaks[1])</span>
+<span class="sd">        Peak(spins=[</span>
+<span class="sd">        Spin(res_type=Q, res_num=21, atom=HN),</span>
+<span class="sd">        Spin(res_type=Q, res_num=21, atom=N),</span>
+<span class="sd">        Spin(res_type=G, res_num=17, atom=HN)])</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out : dictionary</span>
+<span class="sd">        Each key is a frozenset made from two Hydrogen spin.assignment</span>
+<span class="sd">        tuples. Each value is a list of peaks containing those two Hydrogen</span>
+<span class="sd">        spins.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">spin_link_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="n">peaklist</span><span class="p">:</span>
+        <span class="n">spins</span> <span class="o">=</span> <span class="p">[</span><span class="n">spin</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">peak</span>
+                 <span class="k">if</span> <span class="n">spin</span><span class="o">.</span><span class="n">atom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">spin</span><span class="o">.</span><span class="n">atom</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;H&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">spins</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;expected 2 Hydrogens in each peak, &#39;</span>
+                   <span class="s1">&#39;found </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">spins</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="n">link</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">spin</span><span class="o">.</span><span class="n">assignment</span> <span class="k">for</span> <span class="n">spin</span> <span class="ow">in</span> <span class="n">spins</span><span class="p">)</span>
+        <span class="n">spin_link_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">link</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">spin_link_dict</span></div>
+
+
+<span class="k">def</span> <span class="nf">renumber_peaklist</span><span class="p">(</span><span class="n">peaklist</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">peak</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">peaklist</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">peak</span><span class="o">.</span><span class="n">number</span> <span class="o">=</span> <span class="n">i</span>
+    <span class="k">return</span> <span class="n">peaklist</span>
+
+
+<div class="viewcode-block" id="reorder_dims"><a class="viewcode-back" href="../../modules/peaklist.html#nmrpeaklists.peaklist.reorder_dims">[docs]</a><span class="k">def</span> <span class="nf">reorder_dims</span><span class="p">(</span><span class="n">peaklist</span><span class="p">,</span> <span class="n">old_indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">new_indices</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    TODO:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">old_indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">new_indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;must provide indices&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">old_indices</span> <span class="o">=</span> <span class="n">argsort</span><span class="p">(</span><span class="n">new_indices</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="n">peaklist</span><span class="p">:</span>
+        <span class="n">peak</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">peak</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">old_indices</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">peaklist</span></div>
+
+
+<div class="viewcode-block" id="sort_by_assignments"><a class="viewcode-back" href="../../modules/peaklist.html#nmrpeaklists.peaklist.sort_by_assignments">[docs]</a><span class="k">def</span> <span class="nf">sort_by_assignments</span><span class="p">(</span><span class="n">peaklist</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">commented_at_end</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sort peaks by the assignments of their constituent spins.</span>
+
+<span class="sd">    Sort the peaks by the assignments of spins in particular dimensions.</span>
+<span class="sd">    The default order sorts the peaks by the dimensions associated with</span>
+<span class="sd">    spin anchors first then by the remaining dimensions in the order they</span>
+<span class="sd">    appear in each peak. Optionally place all commented peaks at the end of</span>
+<span class="sd">    the peak list.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    order : list containing ints or tuples of ints</span>
+<span class="sd">        A list of spin indices and anchor tuples indicating the order in</span>
+<span class="sd">        which the dimensions should be sorted. The default order sorts</span>
+<span class="sd">        anchored spins before unanchored spins, then sorts the remaining</span>
+<span class="sd">        spins by their order in the peaks.</span>
+<span class="sd">    commented_at_end : boolean, default False</span>
+<span class="sd">        Indicate whether commented peaks should be sorted in their normal</span>
+<span class="sd">        order or at the end of the peak list</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; peaklist.dims</span>
+<span class="sd">    3</span>
+<span class="sd">    &gt;&gt;&gt; peaklist[0][0]</span>
+<span class="sd">    Spin(res_type=&#39;I&#39;, res_num=34, atom=&#39;H&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; peaklist[0][2]</span>
+<span class="sd">    Spin(res_type=&#39;I&#39;, res_num=34, atom=&#39;N&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; peaklist.sort_by_assignments([(0, 2), 1], commented_at_end=True)</span>
+<span class="sd">    &gt;&gt;&gt; peaklist[0][0]</span>
+<span class="sd">    Spin(res_type=&#39;E&#39;, res_num=1, atom=&#39;H&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; peaklist[0][2]</span>
+<span class="sd">    Spin(res_type=&#39;E&#39;, res_num=1, atom=&#39;N&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">anchors</span> <span class="o">=</span> <span class="n">peaklist</span><span class="o">.</span><span class="n">anchors</span>
+    <span class="n">anchored</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">anchor</span> <span class="ow">in</span> <span class="n">anchors</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">anchor</span><span class="p">)</span>
+    <span class="n">unanchored</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">peaklist</span><span class="o">.</span><span class="n">dims</span><span class="p">))</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">anchored</span><span class="p">)</span>
+    <span class="n">default_order</span> <span class="o">=</span> <span class="n">anchored</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unanchored</span><span class="p">))</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">order</span> <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_order</span>
+    <span class="n">peaklist</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">peak</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">peak</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">order</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">commented_at_end</span><span class="p">:</span>
+        <span class="n">peaklist</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">peak</span><span class="p">:</span> <span class="n">peak</span><span class="o">.</span><span class="n">commented</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">peaklist</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+    <a id="sidebar-anchor"></a>
+    
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+      </ul>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Bradley Harden.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>

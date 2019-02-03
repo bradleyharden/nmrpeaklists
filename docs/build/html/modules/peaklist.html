@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>peaklist &#8212; nmrpeaklists 0.9 documentation</title>
+    <link rel="stylesheet" href="../_static/pydoctheme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="columns" href="columns.html" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <link rel="shortcut icon" type="image/png" href="../_static/favicon.png" />
+    <meta name="viewport" content="width=device-width,initial-scale=0.8">
+    
+    
+
+  </head><body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="responsive-menu"><a href="#sidebar-anchor" title="Navigation">&#9776;</a></li>
+        <li><a href="../index.html">nmrpeaklists 0.9 documentation</a> &#187;</li>
+          <li><a href="../documentation.html" accesskey="U">Documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-nmrpeaklists.peaklist">
+<span id="peaklist"></span><h1>peaklist<a class="headerlink" href="#module-nmrpeaklists.peaklist" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="#nmrpeaklists.peaklist.Assignment" title="nmrpeaklists.peaklist.Assignment"><code class="xref py py-class docutils literal notranslate"><span class="pre">Assignment</span></code></a> objects encapsulate the three elements of an NMR
+assignment: residue type, residue number and atom name.</p>
+<p><a class="reference internal" href="#nmrpeaklists.peaklist.Spin" title="nmrpeaklists.peaklist.Spin"><code class="xref py py-class docutils literal notranslate"><span class="pre">Spin</span></code></a> objects encapsulate all properties of a single NMR spin
+resonance in a peak list</p>
+<p><a class="reference internal" href="#nmrpeaklists.peaklist.Peak" title="nmrpeaklists.peaklist.Peak"><code class="xref py py-class docutils literal notranslate"><span class="pre">Peak</span></code></a> objects represent a line in a peak list. They act as lists
+of Spin objects and contain additional peak-specific attributes.</p>
+<p><a class="reference internal" href="#nmrpeaklists.peaklist.PeakList" title="nmrpeaklists.peaklist.PeakList"><code class="xref py py-class docutils literal notranslate"><span class="pre">PeakList</span></code></a> objects represent a peak list. They act as lists of Peak
+objects and contain attributes associated with the entire list.</p>
+</div>
+<div class="section" id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="nmrpeaklists.peaklist.Assignment">
+<em class="property">class </em><code class="descclassname">nmrpeaklists.peaklist.</code><code class="descname">Assignment</code><a class="headerlink" href="#nmrpeaklists.peaklist.Assignment" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="nmrpeaklists.peaklist.Assignment.atom">
+<code class="descname">atom</code><a class="headerlink" href="#nmrpeaklists.peaklist.Assignment.atom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="nmrpeaklists.peaklist.Assignment.res_num">
+<code class="descname">res_num</code><a class="headerlink" href="#nmrpeaklists.peaklist.Assignment.res_num" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="nmrpeaklists.peaklist.Assignment.res_type">
+<code class="descname">res_type</code><a class="headerlink" href="#nmrpeaklists.peaklist.Assignment.res_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nmrpeaklists.peaklist.Spin">
+<em class="property">class </em><code class="descclassname">nmrpeaklists.peaklist.</code><code class="descname">Spin</code><span class="sig-paren">(</span><em>res_type=None</em>, <em>res_num=None</em>, <em>atom=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nmrpeaklists/peaklist.html#Spin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nmrpeaklists.peaklist.Spin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encapsulate all properties of an NMR spin.</p>
+<p>Record the chemical shift and assignment information for an NMR spin.
+Spins are hashable, and the hash is based on a tuple of the spin’s
+residue type, residue number, and atom name. Two spins are considered
+equal if they share the same value for all three assignment attributes.
+Spins may also be compared to each other for sorting purposes. A spin is
+considered “less than” another spin, if the former is assigned and the
+latter is an unassigned spin system. Furthermore, assigned spins are
+compared to each other first by residue number, then by backbone or
+sidechain position, and finally by atom number.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>res_type</strong> <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Single letter code for residue type. Use <code class="docutils literal notranslate"><span class="pre">'+'</span></code> for unassigned
+spin systems.</p>
+</dd>
+<dt><strong>res_num</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int or string, optional</span></dt>
+<dd><p class="first last">Residue number</p>
+</dd>
+<dt><strong>atom</strong> <span class="classifier-delimiter">:</span> <span class="classifier">string, optional</span></dt>
+<dd><p class="first last">Atom name</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="#nmrpeaklists.peaklist.Peak" title="nmrpeaklists.peaklist.Peak"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Peak</span></code></a>, <a class="reference internal" href="#nmrpeaklists.peaklist.PeakList" title="nmrpeaklists.peaklist.PeakList"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PeakList</span></code></a></p>
+</div>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">spin</span> <span class="o">=</span> <span class="n">Spin</span><span class="p">(</span><span class="n">shift</span><span class="o">=</span><span class="mf">3.41</span><span class="p">,</span> <span class="n">spin_id</span><span class="o">=</span><span class="mi">1012</span><span class="p">,</span> <span class="n">res_type</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="n">res_num</span><span class="o">=</span><span class="mi">54</span><span class="p">,</span>
+<span class="go">                atom=&#39;HB3&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">spin</span><span class="p">)</span>
+<span class="go">Spin(shift=3.41, shfit_pts=None, id=1012, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="go">atom=&#39;HB3&#39;)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="nmrpeaklists.peaklist.Peak">
+<em class="property">class </em><code class="descclassname">nmrpeaklists.peaklist.</code><code class="descname">Peak</code><span class="sig-paren">(</span><em>spins=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nmrpeaklists/peaklist.html#Peak"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nmrpeaklists.peaklist.Peak" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of Spin objects and an associated set of parameters.</p>
+<p>Peak objects encapsulate each line of an NMR peak list. Peak specific
+parameters should be added as attributes. Arbitrary attributes may be
+added to a Peak with the standard attribute syntax or as keyword
+arguments upon initialization.</p>
+<p>Peaks are hashable, and the hash is based on a frozen set of the peak’s
+constituent spins. Two peaks are considered equal if their sets of
+spins are equal. Note that this only depends on the assignments of the
+spins, not on the spin’s attributes nor the peak’s attributes.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Peak objects are hashable but still mutable.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>spins</strong> <span class="classifier-delimiter">:</span> <span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code> of <a class="reference internal" href="#nmrpeaklists.peaklist.Spin" title="nmrpeaklists.peaklist.Spin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Spin</span></code></a>, optional</span></dt>
+<dd><p class="first last">Spins comprising the peak</p>
+</dd>
+<dt><strong>index</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int or string, optional</span></dt>
+<dd><p class="first last">Peak index</p>
+</dd>
+<dt><strong>commented</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, default False</span></dt>
+<dd><p class="first last">Whether the peak should be commented in the peak list</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="#nmrpeaklists.peaklist.Spin" title="nmrpeaklists.peaklist.Spin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Spin</span></code></a>, <a class="reference internal" href="#nmrpeaklists.peaklist.PeakList" title="nmrpeaklists.peaklist.PeakList"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PeakList</span></code></a></p>
+</div>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">spin0</span> <span class="o">=</span> <span class="n">Spin</span><span class="p">(</span><span class="n">shift</span><span class="o">=</span><span class="mf">3.41</span><span class="p">,</span> <span class="n">spin_id</span><span class="o">=</span><span class="mi">1012</span><span class="p">,</span> <span class="n">res_type</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="n">res_num</span><span class="o">=</span><span class="mi">54</span><span class="p">,</span>
+<span class="go">                atom=&#39;HB3&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spin1</span> <span class="o">=</span> <span class="n">Spin</span><span class="p">(</span><span class="n">shift</span><span class="o">=</span><span class="mf">40.24</span><span class="p">,</span> <span class="n">spin_id</span><span class="o">=</span><span class="mi">1013</span><span class="p">,</span> <span class="n">res_type</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="n">res_num</span><span class="o">=</span><span class="mi">54</span><span class="p">,</span>
+<span class="go">                atom=&#39;CB&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spin2</span> <span class="o">=</span> <span class="n">Spin</span><span class="p">(</span><span class="n">shift</span><span class="o">=</span><span class="mf">4.632</span><span class="p">,</span> <span class="n">spin_id</span><span class="o">=</span><span class="mi">973</span><span class="p">,</span> <span class="n">res_type</span><span class="o">=</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="n">res_num</span><span class="o">=</span><span class="mi">56</span><span class="p">,</span>
+<span class="go">                atom=&#39;HA&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peak</span> <span class="o">=</span> <span class="n">Peak</span><span class="p">(</span><span class="n">spins</span><span class="o">=</span><span class="p">[</span><span class="n">spin0</span><span class="p">,</span> <span class="n">spin1</span><span class="p">,</span> <span class="n">spin2</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="mi">134</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="mf">5.432e5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span>
+<span class="go">Peak(volume=543200.0, index=134, commented=False, spins=</span>
+<span class="go">[Spin(shift=3.41, shfit_pts=None, id=1012, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="go">atom=&#39;HB3&#39;),</span>
+<span class="go">Spin(shift=40.24, shfit_pts=None, id=1013, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="go">atom=&#39;CB&#39;),</span>
+<span class="go">Spin(shift=4.63, shfit_pts=None, id=973, res_type=&#39;L&#39;, res_num=56,</span>
+<span class="go">atom=&#39;HA&#39;)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peak</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="mf">1.852e3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span>
+<span class="go">Peak(volume=543200.0, index=134, commented=False, height=1852.0, spins=</span>
+<span class="go">[Spin(shift=3.41, shfit_pts=None, id=1012, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="go">atom=&#39;HB3&#39;),</span>
+<span class="go">Spin(shift=40.24, shfit_pts=None, id=1013, res_type=&#39;D&#39;, res_num=54,</span>
+<span class="go">atom=&#39;CB&#39;),</span>
+<span class="go">Spin(shift=4.63, shfit_pts=None, id=973, res_type=&#39;L&#39;, res_num=56,</span>
+<span class="go">atom=&#39;HA&#39;)])</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="nmrpeaklists.peaklist.Peak.insert">
+<code class="descname">insert</code><span class="sig-paren">(</span><em>i</em>, <em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nmrpeaklists/peaklist.html#Peak.insert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nmrpeaklists.peaklist.Peak.insert" title="Permalink to this definition">¶</a></dt>
+<dd><p>S.insert(index, object) – insert object before index</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nmrpeaklists.peaklist.PeakList">
+<em class="property">class </em><code class="descclassname">nmrpeaklists.peaklist.</code><code class="descname">PeakList</code><span class="sig-paren">(</span><em>peaks=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nmrpeaklists/peaklist.html#PeakList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nmrpeaklists.peaklist.PeakList" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of Peak objects and parameters associated with entire peak lists.</p>
+<p>PeakLists are hashable, and the hash is based on a frozen set of the
+constituent peaks. Two peak lists are considered equal if their sets of
+peaks are equal. Note that this only depends on the assignments of the
+spins in each peak, not on any other spin, peak or peak list attributes.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">PeakList objects are hashable but still mutable.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>peaks</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of Peak objects, optional</span></dt>
+<dd><p class="first last">Each peak must have the same number of spins. The dimensionality
+of the peak list is given with self.dims</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>ValueError</strong></dt>
+<dd><p class="first last">If attempting to insert a peak with a different number of spins than
+those currently populating the peak list.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference internal" href="#nmrpeaklists.peaklist.Spin" title="nmrpeaklists.peaklist.Spin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Spin</span></code></a>, <a class="reference internal" href="#nmrpeaklists.peaklist.Peak" title="nmrpeaklists.peaklist.Peak"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Peak</span></code></a></p>
+</div>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">peaklist</span> <span class="o">=</span> <span class="n">PeakList</span><span class="p">(</span><span class="n">anchors</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)],</span>
+<span class="go">                        tab_fmt=[(&#39;height&#39;, &#39;HEIGHT&#39;, &#39;%11.4e&#39;),</span>
+<span class="go">                                 (&#39;width&#39;, &#39;%sW&#39;, &#39;%5.2f&#39;),</span>
+<span class="go">                                 (&#39;CEST_profile&#39;, &#39;Z_A%d&#39;, &#39;%6.4f&#39;)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peak</span> <span class="o">=</span> <span class="n">peaklist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peak</span><span class="o">.</span><span class="n">height</span>
+<span class="go">53472000.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peak</span><span class="o">.</span><span class="n">CEST_profile</span>
+<span class="go">[0.3017, 0.3022, 0.3021, ...]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spin</span> <span class="o">=</span> <span class="n">peak</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spin</span><span class="o">.</span><span class="n">width</span>
+<span class="go">2.07</span>
+</pre></div>
+</div>
+<dl class="attribute">
+<dt id="nmrpeaklists.peaklist.PeakList.anchors">
+<code class="descname">anchors</code><a class="headerlink" href="#nmrpeaklists.peaklist.PeakList.anchors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detect which spins in each peak make up spin anchors.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nmrpeaklists.peaklist.PeakList.insert">
+<code class="descname">insert</code><span class="sig-paren">(</span><em>i</em>, <em>v</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nmrpeaklists/peaklist.html#PeakList.insert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nmrpeaklists.peaklist.PeakList.insert" title="Permalink to this definition">¶</a></dt>
+<dd><p>S.insert(index, object) – insert object before index</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="nmrpeaklists.peaklist.calibrate_peaklist">
+<code class="descclassname">nmrpeaklists.peaklist.</code><code class="descname">calibrate_peaklist</code><span class="sig-paren">(</span><em>peaklist</em>, <em>calibration</em>, <em>attr='shift'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nmrpeaklists/peaklist.html#calibrate_peaklist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nmrpeaklists.peaklist.calibrate_peaklist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calibrate the chemical shifts of each spin in the peak list.</p>
+<p>#TODO:</p>
+<p>For each spin in the peak list, subtract the corresponding calibration
+value from its spin.shift attribute.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>calibration</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of floats</span></dt>
+<dd><p class="first last">List of calibrations for each dimension of the peak list, in PPM.
+The order of the calibration values should match the order of the
+spins in each peak.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>ValueError</strong></dt>
+<dd><p class="first last">When the calibration list length doesn’t match the number of pins
+in the peak.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">peaklist</span> <span class="o">=</span> <span class="n">PeakList</span><span class="p">(</span><span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaklist</span><span class="o">.</span><span class="n">calibrate</span><span class="p">([</span><span class="mf">0.053</span><span class="p">,</span> <span class="mf">0.102</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.018</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="nmrpeaklists.peaklist.get_spin_link_dict">
+<code class="descclassname">nmrpeaklists.peaklist.</code><code class="descname">get_spin_link_dict</code><span class="sig-paren">(</span><em>peaklist</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nmrpeaklists/peaklist.html#get_spin_link_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nmrpeaklists.peaklist.get_spin_link_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map each unique spin link to all of its corresponding peaks.</p>
+<p>NOESY peak lists represent spin links between Hydrogen atoms. Whether
+2D, 3D or 4D, each peak in a NOESY peak list has exactly two Hydrogen
+spins. Here, a spin link is represented by a frozenset containing the
+spin.assignment tuples for each Hydrogen atom. This function returns a
+dictionary mapping each unique spin link to a list of the Peaks in the
+PeakList that contain those two Hydrogen atoms.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>out</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dictionary</span></dt>
+<dd><p class="first last">Each key is a frozenset made from two Hydrogen spin.assignment
+tuples. Each value is a list of peaks containing those two Hydrogen
+spins.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">spin_link_dict</span> <span class="o">=</span> <span class="n">peaklist</span><span class="o">.</span><span class="n">spin_link_dict</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spin_link</span><span class="p">,</span> <span class="n">peaks</span> <span class="o">=</span> <span class="n">spin_link_dict</span><span class="o">.</span><span class="n">popitem</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spin_link</span>
+<span class="go">frozenset([Assignment(res_type=&#39;Q&#39;, res_num=21, atom=&#39;HN&#39;), Assignment(</span>
+<span class="go">res_type=&#39;G&#39;, res_num=17, atom=&#39;HN&#39;)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">peaks</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="go">    Peak(spins=[</span>
+<span class="go">    Spin(res_type=G, res_num=17, atom=HN),</span>
+<span class="go">    Spin(res_type=G, res_num=17, atom=N),</span>
+<span class="go">    Spin(res_type=Q, res_num=21, atom=HN)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">peaks</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="go">    Peak(spins=[</span>
+<span class="go">    Spin(res_type=Q, res_num=21, atom=HN),</span>
+<span class="go">    Spin(res_type=Q, res_num=21, atom=N),</span>
+<span class="go">    Spin(res_type=G, res_num=17, atom=HN)])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="nmrpeaklists.peaklist.reorder_dims">
+<code class="descclassname">nmrpeaklists.peaklist.</code><code class="descname">reorder_dims</code><span class="sig-paren">(</span><em>peaklist</em>, <em>old_indices=None</em>, <em>new_indices=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nmrpeaklists/peaklist.html#reorder_dims"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nmrpeaklists.peaklist.reorder_dims" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="nmrpeaklists.peaklist.sort_by_assignments">
+<code class="descclassname">nmrpeaklists.peaklist.</code><code class="descname">sort_by_assignments</code><span class="sig-paren">(</span><em>peaklist</em>, <em>order=None</em>, <em>commented_at_end=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nmrpeaklists/peaklist.html#sort_by_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nmrpeaklists.peaklist.sort_by_assignments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort peaks by the assignments of their constituent spins.</p>
+<p>Sort the peaks by the assignments of spins in particular dimensions.
+The default order sorts the peaks by the dimensions associated with
+spin anchors first then by the remaining dimensions in the order they
+appear in each peak. Optionally place all commented peaks at the end of
+the peak list.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>order</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list containing ints or tuples of ints</span></dt>
+<dd><p class="first last">A list of spin indices and anchor tuples indicating the order in
+which the dimensions should be sorted. The default order sorts
+anchored spins before unanchored spins, then sorts the remaining
+spins by their order in the peaks.</p>
+</dd>
+<dt><strong>commented_at_end</strong> <span class="classifier-delimiter">:</span> <span class="classifier">boolean, default False</span></dt>
+<dd><p class="first last">Indicate whether commented peaks should be sorted in their normal
+order or at the end of the peak list</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">peaklist</span><span class="o">.</span><span class="n">dims</span>
+<span class="go">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaklist</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">Spin(res_type=&#39;I&#39;, res_num=34, atom=&#39;H&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaklist</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+<span class="go">Spin(res_type=&#39;I&#39;, res_num=34, atom=&#39;N&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaklist</span><span class="o">.</span><span class="n">sort_by_assignments</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">1</span><span class="p">],</span> <span class="n">commented_at_end</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaklist</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">Spin(res_type=&#39;E&#39;, res_num=1, atom=&#39;H&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaklist</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+<span class="go">Spin(res_type=&#39;E&#39;, res_num=1, atom=&#39;N&#39;)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+    <a id="sidebar-anchor"></a>
+    
+
+  <h3><a href="../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">peaklist</a><ul>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#documentation">Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="columns.html"
+                        title="previous chapter">columns</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/modules/peaklist.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="columns.html" title="columns"
+             accesskey="P">previous</a> |</li>
+      </ul>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Bradley Harden.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.3.
+    </div>
+  </body>
+</html>
